@@ -14,6 +14,8 @@ import org.nlogo.api.{ ComponentSerialization, ConfigurableModelLoader, ModelFor
 
 import scala.util.{ Failure, Success, Try }
 
+import scala.concurrent.{ Await, duration }, duration.Duration
+
 class OpenModelTests extends FunSuite {
   val testURI = new URI("file:///foo.test")
 
@@ -33,7 +35,9 @@ class OpenModelTests extends FunSuite {
       override def knownVersion(v: String) = v == currentVersion || super.knownVersion(v)
     }
     lazy val loader = new ConfigurableModelLoader().addFormat[String, MockFormat](format)
-    lazy val openedModel = OpenModelFromURI(uri, controller, loader, autoconverter, VersionInfo)
+    lazy val openedModel =
+      Try(Await.result(new OpenModelFromURI(NetLogoExecutionContext.backgroundExecutionContext)
+        (uri, controller, loader, autoconverter, VersionInfo), Duration.Inf)).toOption
   }
 
   test("if asked to open a model will a null path, returns none and reports an invalid URI") { new OpenTest {
@@ -120,8 +124,9 @@ class OpenModelTests extends FunSuite {
   } }
 
   test("OpenFromSource opens the model properly") { new OpenTest {
-    val modelFromSource = OpenModelFromSource(uri, "model source", controller, loader, autoconverter, VersionInfo)
-    assertResult(Some(Model()))(modelFromSource)
+    val modelFromSource = new OpenModelFromSource(NetLogoExecutionContext.backgroundExecutionContext)(
+      uri, "model source", controller, loader, autoconverter, VersionInfo)
+    assertResult(Model())(Await.result(modelFromSource, Duration.Inf))
   } }
 }
 
