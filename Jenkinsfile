@@ -9,7 +9,7 @@ pipeline {
     stage('Start') {
       steps {
         library 'netlogo-shared'
-        sendNotifications 'STARTED'
+        sendNotifications('NetLogo/NetLogo', 'STARTED')
       }
     }
 
@@ -46,7 +46,7 @@ pipeline {
   post {
     always {
       library 'netlogo-shared'
-      sendNotifications currentBuild.result
+      sendNotifications('NetLogo/NetLogo', currentBuild.result)
     }
   }
 
