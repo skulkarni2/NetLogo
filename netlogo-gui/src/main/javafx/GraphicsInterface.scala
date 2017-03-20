@@ -131,7 +131,9 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
   def setStrokeControl(): Unit = {
     // TODO: Rendering hints about stroke
   }
-  def setStrokeFromLineThickness(lineThickness: Double,scale: Double,cellSize: Double,shapeWidth: Double): Unit = ???
+  def setStrokeFromLineThickness(lineThickness: Double,scale: Double,cellSize: Double,shapeWidth: Double): Unit = {
+    setStroke((shapeWidth / scale) * (if (lineThickness == 0) 1 else (lineThickness * cellSize)))
+  }
   def translate(x: Double,y: Double): Unit = {
     context.translate(x, y)
   }
