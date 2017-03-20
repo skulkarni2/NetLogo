@@ -21,7 +21,7 @@ import org.nlogo.agent.World
 import org.nlogo.internalapi.ModelRunner
 import org.nlogo.core.{ I18N, Model }
 import org.nlogo.fileformat.ModelConversion
-import org.nlogo.workspace.AbstractWorkspaceScala
+import org.nlogo.workspace.{ AbstractWorkspaceScala, ConfigureWorld }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
@@ -65,18 +65,22 @@ class ApplicationController extends ModelRunner {
         val executionContext = ExecutionContext.fromExecutor(executor, e => System.err.println("exception in background thread: " + e.getMessage))
         val openModelUI = new OpenModelUI(executionContext, menuBar.getScene.getWindow)
         selectedFile.foreach { file =>
-          openModelUI(file.toURI, modelLoader, modelConverter)
+          val openedModel = openModelUI(file.toURI, modelLoader, modelConverter)
             .map { m =>
               CompileAll(m, workspace)
             }(executionContext)
-            .foreach {
-              compiledModel =>
-                val (interfaceWidgetsPane, widgetsMap) = ModelInterfaceBuilder.build(compiledModel, ApplicationController.this)
-                interfacePane = interfaceWidgetsPane
-                widgetsByTag = widgetsMap
-                //TODO: add turtle and link shapes to workspace
-                interfaceArea.getChildren.add(interfaceWidgetsPane)
-            }(JavaFXExecutionContext)
+          openedModel.foreach {
+            compiledModel =>
+              ConfigureWorld(workspace, compiledModel)
+          }(executionContext)
+          openedModel.foreach {
+            compiledModel =>
+              val (interfaceWidgetsPane, widgetsMap) = ModelInterfaceBuilder.build(compiledModel, ApplicationController.this)
+              interfacePane = interfaceWidgetsPane
+              widgetsByTag = widgetsMap
+              //TODO: add turtle and link shapes to workspace
+              interfaceArea.getChildren.add(interfaceWidgetsPane)
+          }(JavaFXExecutionContext)
         }
       }
     })

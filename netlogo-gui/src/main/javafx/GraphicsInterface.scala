@@ -10,7 +10,9 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
   // TODO: I believe scale is correcting for the size ratio of Shape.Width. I'm not sure context.scale accounts for this properly...
   def antiAliasing(on: Boolean): Unit = { }
   def dispose(): Unit = { }
+
   def draw(shape: java.awt.Shape): Unit = ???
+
   def drawCircle(x: Double,y: Double,xDiamter: Double,yDiameter: Double,scale: Double,angle: Double): Unit = {
     // need scale, angle...
     context.save()
@@ -22,7 +24,9 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
   // javafx has similar calls, but we'll need to transform from an awt Image / BufferedImage to
   // a javafx image
   def drawImage(image: java.awt.Image,x: Int,y: Int,width: Int,height: Int): Unit = ???
+
   def drawImage(image: java.awt.image.BufferedImage): Unit = ???
+
   def drawLabel(s: String,x: Double,y: Double,patchSize: Double): Unit = {
     // TODO: this should be adjusted for max ascent / descent
     context.fillText(s, 0, 0)
@@ -115,8 +119,15 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
   def setInterpolation(): Unit = {
     // TODO: I'm not sure whether this is necessary and/or possible in JavaFX
   }
-  def setStroke(width: Float,dashes: Array[Float]): Unit = ???
-  def setStroke(width: Double): Unit = ???
+  def setStroke(width: Float,dashes: Array[Float]): Unit = {
+    // also should set line cap, color
+    context.setLineWidth(width)
+    context.setLineDashes(dashes.map(_.toDouble): _*)
+  }
+  def setStroke(width: Double): Unit = {
+    context.setLineWidth(width max 1.0)
+    context.setLineDashes(1.0, 0.0)
+  }
   def setStrokeControl(): Unit = {
     // TODO: Rendering hints about stroke
   }
