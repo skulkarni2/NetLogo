@@ -46,6 +46,7 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
       ycors.map(_.toDouble).toArray[Double],
       length)
   }
+
   def drawRect(x: Double,y: Double,width: Double,height: Double,scale: Double,angle: Double): Unit = {
     context.save()
     context.scale(scale, scale)
@@ -53,6 +54,7 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
     context.strokeRect(x, y, width, height)
     context.restore()
   }
+
   def fill(shape: java.awt.Shape): Unit = ???
 
   def fillCircle(x: Double,y: Double,xDiameter: Double,yDiameter: Double,scale: Double,angle: Double): Unit = {
@@ -91,14 +93,17 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
     // TODO: This should also save strokes set with the setStroke methods
   }
   def rotate(theta: Double,x: Double,y: Double,offset: Double): Unit = {
+    println("Rotating: " + theta + " @offset: " + offset)
     rotate(theta, x + offset / 2, y + offset / 2)
   }
   def rotate(theta: Double,x: Double,y: Double): Unit = {
+    println("Rotating (b): " + theta)
     context.translate(x, y)
     context.rotate(theta)
     context.translate(-x, -y)
   }
   def rotate(theta: Double): Unit = {
+    println("Rotating (c): " + theta)
     context.rotate(theta)
   }
   def scale(x: Double,y: Double,shapeWidth: Double): Unit = {

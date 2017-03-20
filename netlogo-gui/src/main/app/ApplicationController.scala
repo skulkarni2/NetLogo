@@ -109,7 +109,8 @@ class ApplicationController extends ModelRunner {
           val renderer = new org.nlogo.render.Renderer(workspace.world)
           val settings = new org.nlogo.api.ViewSettings {
             def fontSize: Int = 12
-            def patchSize: Double = 13.0
+            // TODO: Why is this separate from world.patchSize?
+            def patchSize: Double = world.patchSize
             def viewWidth: Double = c.getWidth
             def viewHeight: Double = c.getHeight
             def perspective: org.nlogo.api.Perspective = world.observer.perspective

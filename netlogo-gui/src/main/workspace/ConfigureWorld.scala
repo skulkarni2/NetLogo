@@ -14,6 +14,9 @@ object ConfigureWorld {
   def apply(workspace: AbstractWorkspace, compiledModel: CompiledModel) = {
     import workspace.world
     import compiledModel.model
+    world.createPatches(model.view.dimensions)
+    world.patchSize(model.view.dimensions.patchSize)
+    world.realloc()
     setDefaultValues(world, model.widgets)
     // TODO: Maybe these should be core.Shapes instead of org.nlogo.shape.VectorShape
     world.turtleShapes.replaceShapes(model.turtleShapes.map(ShapeConverter.baseShapeToShape))

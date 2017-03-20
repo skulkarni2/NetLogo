@@ -59,9 +59,6 @@ object CompileAll {
       workspace.world.program(results.program)
       val compiledWidgets = model.widgets.map(compileWidget(results, workspace))
 
-      // prep world for run...
-      workspace.world.realloc()
-
       CompiledModel(model,
         compiledWidgets,
         new CompiledRunnableModel(workspace, compiledWidgets),
