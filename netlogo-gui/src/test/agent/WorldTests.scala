@@ -121,4 +121,18 @@ class WorldTests extends FunSuite with AbstractTestWorld {
     assertResult(11)(world.linkBreedsOwnIndexOf(world.getLinkBreed("FOOS"), "B"))
     assertResult(-1)(world.linkBreedsOwnIndexOf(world.getLinkBreed("FOOS"), "C"))
   }
+
+  test("newly initialized world has -1 ticks") {
+    val world = new World()
+    assert(world.ticks() == -1)
+  }
+
+  /*
+  test("worlds can be copied") {
+    val program = Program.empty.copy(linkBreeds = ListMap("FOOS" -> Breed("FOOS", "FOO", owns = Seq("A", "B"), isLinkBreed = true)))
+    val world = makeWorld(worldRectangle, program)
+    assert(world == world.copy)
+    assert(world ne world.copy)
+  }
+  */
 }
