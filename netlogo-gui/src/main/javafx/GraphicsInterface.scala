@@ -80,7 +80,9 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
   def fillRect(x: Int,y: Int,width: Int,height: Int): Unit = {
     context.fillRect(x, y, width, height)
   }
+
   def getFontMetrics: java.awt.FontMetrics = ???
+
   def location(x: Double,y: Double): String = {
     s"(${context.getTransform.getTx + x} , ${context.getTransform.getTy + y})"
   }
@@ -93,18 +95,15 @@ class GraphicsInterface(context: GraphicsContext) extends ApiGraphicsInterface {
     // TODO: This should also save strokes set with the setStroke methods
   }
   def rotate(theta: Double,x: Double,y: Double,offset: Double): Unit = {
-    println("Rotating: " + theta + " @offset: " + offset)
     rotate(theta, x + offset / 2, y + offset / 2)
   }
   def rotate(theta: Double,x: Double,y: Double): Unit = {
-    println("Rotating (b): " + theta)
     context.translate(x, y)
-    context.rotate(theta)
+    context.rotate(theta * 180 / StrictMath.PI)
     context.translate(-x, -y)
   }
   def rotate(theta: Double): Unit = {
-    println("Rotating (c): " + theta)
-    context.rotate(theta)
+    context.rotate(theta * 180 / StrictMath.PI)
   }
   def scale(x: Double,y: Double,shapeWidth: Double): Unit = {
     context.scale(x / shapeWidth, y / shapeWidth)
