@@ -111,7 +111,7 @@ class HeadlessModelOpener(ws: HeadlessWorkspace) {
         case StringInputConstraintSpecification(typeName, default) => new InputBoxConstraint(typeName, default)
         case NumericInputConstraintSpecification(typeName, default) => new InputBoxConstraint(typeName, default)
       }
-      ws.world.observer().variableConstraint(ws.world.observerOwnsIndexOf(vname.toUpperCase), con)
+      ws.world.observer.variableConstraint(ws.world.observerOwnsIndexOf(vname.toUpperCase), con)
     }
 
     ws.command(interfaceGlobalCommands)

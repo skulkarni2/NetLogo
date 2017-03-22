@@ -61,7 +61,7 @@ trait AbstractTestLanguage extends Assertions {
     val actualResult = workspace.evaluateReporter(owner,
       if (mode == NormalMode) reporter
       else ("runresult \"" + org.nlogo.api.StringUtils.escapeString(reporter) + "\""),
-      workspace.world.observer())
+      workspace.world.observer)
     if(workspace.lastLogoException != null)
       throw workspace.lastLogoException
     // To be as safe as we can, let's do two separate checks here...  we'll compare the results both

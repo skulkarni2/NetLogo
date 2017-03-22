@@ -1012,7 +1012,7 @@ class App extends
   @throws(classOf[CompilerException])
   def report(source: String): Object = {
     org.nlogo.awt.EventQueue.cantBeEventDispatchThread()
-    workspace.evaluateReporter(owner, source, workspace.world.observer())
+    workspace.evaluateReporter(owner, source, workspace.world.observer)
   }
 
   /**

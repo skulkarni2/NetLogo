@@ -58,10 +58,10 @@ class World
 
   val timer: Timer = new Timer()
 
-  private val turtleShapes = new ShapeListTracker(AgentKind.Turtle)
+  val turtleShapes = new ShapeListTracker(AgentKind.Turtle)
   def turtleShapeList: ShapeList = turtleShapes.shapeList
 
-  private val linkShapes = new ShapeListTracker(AgentKind.Link)
+  val linkShapes = new ShapeListTracker(AgentKind.Link)
   def linkShapeList = linkShapes.shapeList
 
   private val lineThicknesses: JMap[Agent, JDouble] = new JHashMap[Agent, JDouble]()
@@ -172,8 +172,24 @@ class World
   // this boolean is micro-optimization to make notifying watchers as fast as possible
   private var hasWatchers: Boolean = false
 
+  /// world geometry
 
-  changeTopology(true, true);
+  var _worldWidth: Int = _
+  var _worldHeight: Int = _
+  var _minPxcor: Int = _
+  var _minPycor: Int = _
+  var _maxPycor: Int = _
+  var _maxPxcor: Int = _
+
+  // boxed versions of geometry/size methods, for efficiency
+  var _worldWidthBoxed: JDouble = _
+  var _worldHeightBoxed: JDouble = _
+  var _minPxcorBoxed: JDouble = _
+  var _minPycorBoxed: JDouble = _
+  var _maxPxcorBoxed: JDouble = _
+  var _maxPycorBoxed: JDouble = _
+
+  changeTopology(true, true)
 
   // create patches in the constructor, it's necessary in case
   // the first model we load is 1x1 since when we do create patches
@@ -284,29 +300,12 @@ class World
     trailDrawer.drawLine(x0, y0, x1, y1, color, size, mode)
   }
 
-  // boxed versions of geometry/size methods, for efficiency
-  var _worldWidthBoxed: JDouble = _
-  var _worldHeightBoxed: JDouble = _
-  var _minPxcorBoxed: JDouble = _
-  var _minPycorBoxed: JDouble = _
-  var _maxPxcorBoxed: JDouble = _
-  var _maxPycorBoxed: JDouble = _
-
   def worldWidthBoxed = _worldWidthBoxed
   def worldHeightBoxed = _worldHeightBoxed
   def minPxcorBoxed = _minPxcorBoxed
   def minPycorBoxed = _minPycorBoxed
   def maxPxcorBoxed = _maxPxcorBoxed
   def maxPycorBoxed = _maxPycorBoxed
-
-  /// world geometry
-
-  var _worldWidth: Int = _
-  var _worldHeight: Int = _
-  var _minPxcor: Int = _
-  var _minPycor: Int = _
-  var _maxPycor: Int = _
-  var _maxPxcor: Int = _
 
   def worldWidth: Int = _worldWidth
   def worldHeight: Int = _worldHeight
@@ -590,18 +589,22 @@ class World
   }
 
   def patchColorsDirty: Boolean = _patchColorsDirty
+  private[agent] def patchColorsDirty(dirty: Boolean): Unit = { _patchColorsDirty = dirty }
 
   def markPatchColorsDirty(): Unit = { _patchColorsDirty = true }
 
   def markPatchColorsClean(): Unit = { _patchColorsDirty = false }
 
   def patchesAllBlack: Boolean = _patchesAllBlack
+  private[agent] def patchesAllBlack(areBlack: Boolean): Unit = { _patchesAllBlack = areBlack }
 
   def mayHavePartiallyTransparentObjects: Boolean = _mayHavePartiallyTransparentObjects
 
   def patchColors: Array[Int] = _patchColors
 
-  def patchesWithLabels: Int = patchesWithLabels
+  def patchesWithLabels: Int = _patchesWithLabels
+  private[agent] def addPatchLabel(): Unit = { _patchesWithLabels += 1 }
+  private[agent] def removePatchLabel(): Unit = { _patchesWithLabels -= 1 }
 
   /// creating & clearing
   def createPatches(dim: WorldDimensions): Unit = {

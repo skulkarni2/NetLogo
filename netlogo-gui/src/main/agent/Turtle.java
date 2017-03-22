@@ -640,8 +640,8 @@ public strictfp class Turtle
   public void heading(double heading) {
     double originalHeading = this.heading;
     headingHelper(heading);
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleTurned(this, heading, originalHeading);
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleTurned(this, heading, originalHeading);
     }
   }
 
@@ -650,8 +650,8 @@ public strictfp class Turtle
   public void heading(double heading, Set<Turtle> seenTurtles) {
     double originalHeading = this.heading;
     headingHelper(heading);
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleTurned(this, heading, originalHeading, seenTurtles);
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleTurned(this, heading, originalHeading, seenTurtles);
     }
   }
 
@@ -686,8 +686,8 @@ public strictfp class Turtle
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleTurned(this, h, originalHeading);
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleTurned(this, h, originalHeading);
     }
   }
 
@@ -810,8 +810,8 @@ public strictfp class Turtle
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleMoved
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleMoved
           (this, xcor, ycor, oldX, ycor);
     }
   }
@@ -842,8 +842,8 @@ public strictfp class Turtle
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleMoved
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleMoved
           (this, x, ycor, oldX, ycor);
     }
   }
@@ -875,8 +875,8 @@ public strictfp class Turtle
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleMoved(this, xcor, ycor, xcor, oldY);
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleMoved(this, xcor, ycor, xcor, oldY);
     }
   }
 
@@ -905,8 +905,8 @@ public strictfp class Turtle
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleMoved(this, xcor, y, xcor, oldY);
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleMoved(this, xcor, y, xcor, oldY);
     }
   }
 
@@ -915,8 +915,8 @@ public strictfp class Turtle
     double oldX = this.xcor;
     double oldY = this.ycor;
     xandycorHelper(xcor, ycor);
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleMoved(this, xcor, ycor, oldX, oldY);
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleMoved(this, xcor, ycor, oldX, oldY);
     }
   }
 
@@ -927,8 +927,8 @@ public strictfp class Turtle
     double oldX = this.xcor;
     double oldY = this.ycor;
     xandycorHelper(xcor, ycor);
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleMoved(this, xcor, ycor, oldX, oldY, seenTurtles);
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleMoved(this, xcor, ycor, oldX, oldY, seenTurtles);
     }
   }
 
@@ -986,8 +986,8 @@ public strictfp class Turtle
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
-      world.tieManager.turtleMoved(this, x, y, oldX, oldY);
+    if (world.tieManager().hasTies()) {
+      world.tieManager().turtleMoved(this, x, y, oldX, oldY);
     }
   }
 
@@ -1007,8 +1007,8 @@ public strictfp class Turtle
       if (this == observer.targetAgent()) {
         observer.updatePosition();
       }
-      if (world.tieManager.hasTies()) {
-        world.tieManager.turtleMoved(this, x, y, oldX, oldY);
+      if (world.tieManager().hasTies()) {
+        world.tieManager().turtleMoved(this, x, y, oldX, oldY);
       }
     }
   }

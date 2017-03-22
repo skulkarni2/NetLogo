@@ -127,25 +127,25 @@ private[agent] class Exporter3D(world: World3D, writer: PrintWriter) extends Exp
     // we want to make sure to export the globals in alphabetical order so that the world files are
     // exactly the same everytime which is important for checksums in particular.  ev 6/15/05
     Collections.sort(sortedGlobals)
-    val subject = Option(world.observer().targetAgent()).getOrElse(Nobody)
+    val subject = Option(world.observer.targetAgent()).getOrElse(Nobody)
     print("," + csv.variableNameRow(sortedGlobals))
     println()
-    print(csv.encode(Integer.toString(world.minPxcor())) + ","
-                  + csv.encode(Integer.toString(world.maxPxcor())) + ","
-                  + csv.encode(Integer.toString(world.minPycor())) + ","
-                  + csv.encode(Integer.toString(world.maxPycor())) + ","
+    print(csv.encode(Integer.toString(world.minPxcor)) + ","
+                  + csv.encode(Integer.toString(world.maxPxcor)) + ","
+                  + csv.encode(Integer.toString(world.minPycor)) + ","
+                  + csv.encode(Integer.toString(world.maxPycor)) + ","
                   + csv.encode(Integer.toString(world.minPzcor())) + ","
                   + csv.encode(Integer.toString(world.maxPzcor())) + ","
-                  + csv.encode(Integer.toString(world.observer().perspective().export)) + ","
+                  + csv.encode(Integer.toString(world.observer.perspective().export)) + ","
                   + csv.data(subject) + ","
-                  + csv.encode(JLong.toString(world.nextTurtleIndex())) + ","
-                  + csv.data(if(world.links().isDirected) "DIRECTED" else
-                                   if(world.links().isUndirected) "UNDIRECTED" else "NEITHER") + ","
+                  + csv.encode(JLong.toString(world.nextTurtleIndex)) + ","
+                  + csv.data(if(world.links.isDirected) "DIRECTED" else
+                                   if(world.links.isUndirected) "UNDIRECTED" else "NEITHER") + ","
                   + csv.encode(Dump.number(world.tickCounter.ticks)))
     for((g, i) <- globals.zipWithIndex) {
       print(",")
       print(csv.data
-                   (world.observer().getObserverVariable
+                   (world.observer.getObserverVariable
                     (globalVarIndices.get(sortedGlobals.get(i)).intValue())
                   ))
     }
@@ -167,7 +167,7 @@ private[agent] class Exporter3D(world: World3D, writer: PrintWriter) extends Exp
       breedVarIndices(breedVarName) = allTurtleVars.size - 1
     }
     println(csv.variableNameRow(allTurtleVars))
-    val it = world.turtles().iterator
+    val it = world.turtles.iterator
     while(it.hasNext) {
       val turtle = it.next.asInstanceOf[Turtle]
       print(csv.data(turtle.getTurtleVariable(Turtle.VAR_WHO)))

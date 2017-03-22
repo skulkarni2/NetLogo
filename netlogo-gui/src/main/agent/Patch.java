@@ -378,9 +378,9 @@ public strictfp class Patch
       this.pcolor = pcolor;
       variables[VAR_PCOLOR] = null;
       world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
-      world.patchColorsDirty = true;
+      world.patchColorsDirty(true);
       if (pcolor != 0.0) {
-        world.patchesAllBlack = false;
+        world.patchesAllBlack(false);
       }
     }
   }
@@ -393,18 +393,18 @@ public strictfp class Patch
         pcolor = color;
         variables[VAR_PCOLOR] = null;
         world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
-        world.patchColorsDirty = true;
+        world.patchColorsDirty(true);
         if (pcolor != 0.0) {
-          world.patchesAllBlack = false;
+          world.patchesAllBlack(false);
         }
       }
     } else if (pcolor != color) {
       pcolor = color;
       variables[VAR_PCOLOR] = boxedColor;
       world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
-      world.patchColorsDirty = true;
+      world.patchColorsDirty(true);
       if (pcolor != 0.0) {
-        world.patchesAllBlack = false;
+        world.patchesAllBlack(false);
       }
     }
   }
@@ -415,9 +415,9 @@ public strictfp class Patch
       pcolor = color;
       variables[VAR_PCOLOR] = boxedColor;
       world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(color);
-      world.patchColorsDirty = true;
+      world.patchColorsDirty(true);
       if (color != 0.0) {
-        world.patchesAllBlack = false;
+        world.patchesAllBlack(false);
       }
     }
   }
@@ -437,8 +437,8 @@ public strictfp class Patch
       world.patchColors[(int) id] = Color.getRGBInt(((Double) rgb.get(0)).intValue(),
           ((Double) rgb.get(1)).intValue(),
           ((Double) rgb.get(2)).intValue());
-      world.patchColorsDirty = true;
-      world.patchesAllBlack = false;
+      world.patchColorsDirty(true);
+      world.patchesAllBlack(false);
       if(rgb.size() > 3) {
         world.mayHavePartiallyTransparentObjects = true;
       }
@@ -476,11 +476,11 @@ public strictfp class Patch
     if (label instanceof String &&
         ((String) label).length() == 0) {
       if (hasLabel()) {
-        world.patchesWithLabels--;
+        world.addPatchLabel();
       }
     } else {
       if (!hasLabel()) {
-        world.patchesWithLabels++;
+        world.removePatchLabel();
       }
     }
     variables[VAR_PLABEL] = label;

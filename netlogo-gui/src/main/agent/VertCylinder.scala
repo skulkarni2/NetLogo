@@ -218,8 +218,8 @@ class VertCylinder(world: World) extends Topology(world) {
             getPatchWest(source), getPatchSouthEast(source),
             getPatchSouthWest(source))
       }
-    } else if (source.pycor == world.minPycor()) {
-      if (source.pxcor == world.maxPxcor() && source.pxcor == world.minPxcor())
+    } else if (source.pycor == world.minPycor) {
+      if (source.pxcor == world.maxPxcor && source.pxcor == world.minPxcor)
         Array[Agent](getPatchNorth(source))
       else
         Array[Agent](getPatchNorth(source), getPatchEast(source),
@@ -256,7 +256,7 @@ class VertCylinder(world: World) extends Topology(world) {
           else
             Array[Agent](getPatchEast(source), getPatchSouth(source), getPatchWest(source))
         }
-      } else if (source.pycor == world.minPycor()) {
+      } else if (source.pycor == world.minPycor) {
         if (source.pxcor == world.maxPxcor && source.pxcor == world.minPxcor)
           Array[Agent](getPatchNorth(source))
         else
@@ -275,7 +275,7 @@ class VertCylinder(world: World) extends Topology(world) {
   //get patch
 
   override def getPN(source: Patch): Patch = {
-    if (source.pycor == world.maxPycor())
+    if (source.pycor == world.maxPycor)
       null
     else
       getPatchNorth(source)
@@ -285,7 +285,7 @@ class VertCylinder(world: World) extends Topology(world) {
     getPatchEast(source)
 
   override def getPS(source: Patch): Patch = {
-    if (source.pycor == world.minPycor())
+    if (source.pycor == world.minPycor)
       null
     else
       getPatchSouth(source)
@@ -296,28 +296,28 @@ class VertCylinder(world: World) extends Topology(world) {
   }
 
   override def getPNE(source: Patch): Patch = {
-    if (source.pycor == world.maxPycor())
+    if (source.pycor == world.maxPycor)
       null
     else
       getPatchNorthEast(source)
   }
 
   override def getPSE(source: Patch): Patch = {
-    if (source.pycor == world.minPycor())
+    if (source.pycor == world.minPycor)
       null
     else
       getPatchSouthEast(source)
   }
 
   override def getPSW(source: Patch): Patch = {
-    if (source.pycor == world.minPycor())
+    if (source.pycor == world.minPycor)
       null
     else
       getPatchSouthWest(source)
   }
 
   override def getPNW(source: Patch): Patch = {
-    if (source.pycor == world.maxPycor())
+    if (source.pycor == world.maxPycor)
       null
     else
       getPatchNorthWest(source)
