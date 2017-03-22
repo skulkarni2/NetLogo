@@ -38,7 +38,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 // methods like distance() and towards() take a boolean argument "wrap";
 // it's true for the normal prims, false for the nowrap prims. - ST 5/24/06
 
-public strictfp class World
+public strictfp class WorldJava
     implements org.nlogo.api.World, org.nlogo.api.WorldRenderable, org.nlogo.api.WorldWithWorldRenderable {
 
   public static final Double ZERO = Double.valueOf(0.0);
