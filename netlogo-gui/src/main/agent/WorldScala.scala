@@ -6,7 +6,7 @@ import org.nlogo.api.{ AgentException, Color, CompilerServices, ImporterUser,
   LogoException, MersenneTwisterFast, RandomSeedGenerator,
   Timer, TrailDrawerInterface, ValueConstraint, Version, WorldDimensionException }
 
-import org.nlogo.core.{ AgentKind, Breed, Dialect, Nobody$, Program,
+import org.nlogo.core.{ AgentKind, Breed, Dialect, Nobody, Program,
   Shape, ShapeList, ShapeListTracker, WorldDimensions }
 
 import java.lang.{ Double => JDouble, Integer => JInteger }
@@ -68,8 +68,8 @@ class World
   private var _patchSize: Double = 12.0
   private var _trailDrawer: TrailDrawerInterface = _
 
-  private var _topology: Topology = _
-  private var rootsTable: RootsTable = _
+  private[agent] var topology: Topology = _
+  private[agent] var rootsTable: RootsTable = _
 
   val protractor: Protractor = new Protractor(this)
 
@@ -84,8 +84,8 @@ class World
 
   val inRadiusOrCone: InRadiusOrCone = new InRadiusOrCone(this)
 
-  private var breeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
-  private var linkBreeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
+  private[agent] var breeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
+  private[agent] var linkBreeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
 
   private var breedsOwnCache: JHashMap[String, Integer] = new JHashMap[String, Integer]();
 
@@ -99,7 +99,7 @@ class World
   private var _nextLinkIndex: Long = 0
 
   private var _compiler: CompilerServices = null
-  private var _program: Program = newProgram()
+  private var _program: Program = newProgram
 
   // These are used to cache old values while recompiling...
   private var _oldProgram: Program = null
@@ -119,7 +119,7 @@ class World
 
   // possibly need another array for 3D colors
   // since it seems messy to collapse 3D array into 2D
-  private var _patchColors: Array[Int]
+  private var _patchColors: Array[Int] = _
 
   // GLView
   // this is used by the OpenGL texture code to decide whether
@@ -143,7 +143,7 @@ class World
   // would be expensive.  we just reset it at clear-all time.
   private var _mayHavePartiallyTransparentObjects = false
 
-  private var _displayOn: Boolean = true;
+  private var _displayOn: Boolean = true
 
 
   val linkBreedShapes = new BreedShapes("LINKS", linkShapes)
@@ -190,9 +190,9 @@ class World
   /// empty agentsets
 
   // TODO: Consider whether these can become static vals
-  val noTurtles: AgentSet = AgentSet.emptyTurtleSet()
-  val noPatches: AgentSet = AgentSet.emptyPatchSet()
-  val noLinks:   AgentSet = AgentSet.emptyLinkSet()
+  val noTurtles: AgentSet = AgentSet.emptyTurtleSet
+  val noPatches: AgentSet = AgentSet.emptyPatchSet
+  val noLinks:   AgentSet = AgentSet.emptyLinkSet
 
   def trailDrawer(trailDrawer: TrailDrawerInterface): Unit = {
     _trailDrawer = trailDrawer
@@ -201,19 +201,19 @@ class World
   def trailDrawer = _trailDrawer
 
   /// get/set methods for World Topology
-  private[agent] def getTopology: Topology = _topology
+  private[agent] def getTopology: Topology = topology
 
   def changeTopology(xWrapping: Boolean, yWrapping: Boolean): Unit = {
-    _topology = Topology.getTopology(this, xWrapping, yWrapping)
+    topology = Topology.getTopology(this, xWrapping, yWrapping)
     if (_patches != null) { // is null during initialization
-      val it = _patches.iterator()
-      while (it.hasNext()) {
+      val it = _patches.iterator
+      while (it.hasNext) {
         it.next().asInstanceOf[Patch].topologyChanged()
       }
     }
   }
 
-  val wrappedObserverX(x: Double): Double = {
+  def wrappedObserverX(x: Double): Double = {
     try {
       topology.wrapX(x - topology.followOffsetX)
     } catch {
@@ -275,7 +275,7 @@ class World
       0.0
   }
 
-  val removeLineThickness(agent: Agent): Unit =
+  def removeLineThickness(agent: Agent): Unit =
     lineThicknesses.remove(agent)
 
   /// equality
@@ -340,8 +340,8 @@ class World
     val wrappedX =
       try {
         topology.wrapX(x)
-      } catch (AgentException ex) {
-        throw new AgentException("Cannot access patches beyond the limits of current world.");
+      } catch {
+        case ex: AgentException => throw new AgentException("Cannot access patches beyond the limits of current world.")
       }
     if (wrappedX > 0) {
       (wrappedX + 0.5).toInt
@@ -358,8 +358,8 @@ class World
     val wrappedY =
       try {
         topology.wrapY(y);
-      } catch (AgentException ex) {
-        throw new AgentException("Cannot access patches beyond the limits of current world.");
+      } catch {
+        case ex: AgentException => throw new AgentException("Cannot access patches beyond the limits of current world.")
       }
     if (wrappedY > 0) {
       (wrappedY + 0.5).toInt
@@ -370,7 +370,7 @@ class World
     }
   }
 
-  val createTurtle(breed: AgentSet): Turtle =
+  def createTurtle(breed: AgentSet): Turtle =
     new Turtle(this, breed, Zero, Zero)
 
   // c must be in 0-13 range
@@ -401,7 +401,7 @@ class World
     agentKind match {
       case AgentKind.Turtle => _turtles
       case AgentKind.Patch => _patches
-      case AgentKind.Observer => _observers
+      case AgentKind.Observer => observers
       case AgentKind.Link => _links
     }
   }
@@ -509,7 +509,7 @@ class World
       if (wrappedY > 0) {
         (wrappedY + 0.5).toInt
       } else {
-        val intPart = (int) wrappedY
+        val intPart = wrappedY.toInt
         val fractPart = intPart - wrappedY
         if (fractPart > 0.5) intPart - 1 else intPart
       }
@@ -539,14 +539,14 @@ class World
   def nextTurtleIndex: Long = _nextTurtleIndex
 
   def newTurtleId(): Long = {
-    val r = nextTurtleIndex
-    nextTurtleIndex += 1
+    val r = _nextTurtleIndex
+    _nextTurtleIndex += 1
     r
   }
 
   def newLinkId(): Long = {
-    val r = nextLinkIndex
-    nextLinkIndex += 1
+    val r = _nextLinkIndex
+    _nextLinkIndex += 1
     r
   }
 
@@ -555,7 +555,7 @@ class World
     val turtle = getTurtle(id).asInstanceOf[Turtle]
     if (turtle == null) {
       val newTurtle = new Turtle(this, id)
-      nextTurtleIndex = StrictMath.max(nextTurtleIndex, id + 1)
+      _nextTurtleIndex = StrictMath.max(nextTurtleIndex, id + 1)
       newTurtle
     } else {
       turtle
@@ -586,7 +586,7 @@ class World
             end1.asInstanceOf[Turtle].agentKey,
             end2.asInstanceOf[Turtle].agentKey, breed))
 
-    link.getOrElse(new DummyLink(this, end1, end2, breed))
+    linkOption.getOrElse(new DummyLink(this, end1, end2, breed))
   }
 
   def patchColorsDirty: Boolean = _patchColorsDirty
@@ -626,7 +626,7 @@ class World
   def createPatches(minPxcor: Int, maxPxcor: Int,
     minPycor: Int, maxPycor: Int): Unit = {
 
-    patchScratch = null
+    _patchScratch = null
 
     _minPxcor = minPxcor
     _maxPxcor = maxPxcor
@@ -652,11 +652,11 @@ class World
     if (_turtles != null) {
       _turtles.clear() // so a SimpleChangeEvent is published
     }
-    _turtles = new TreeAgentSet(AgentKindJ.Turtle(), "TURTLES")
+    _turtles = new TreeAgentSet(AgentKind.Turtle, "TURTLES")
     if (_links != null) {
       _links.clear() // so a SimpleChangeEvent is published
     }
-    _links = new TreeAgentSet(AgentKindJ.Link(), "LINKS")
+    _links = new TreeAgentSet(AgentKind.Link, "LINKS")
 
     var x = minPxcor
     var y = maxPycor
@@ -667,7 +667,7 @@ class World
 
     val numVariables = _program.patchesOwn.size;
 
-    _observer.resetPerspective
+    observer.resetPerspective()
 
     var i = 0
     while (i < _worldHeight * _worldHeight) {
@@ -680,7 +680,7 @@ class World
       patchArray(i) = patch;
       i += 1
     }
-    _patches = new ArrayAgentSet(AgentKindJ.Patch(), "patches", patchArray)
+    _patches = new ArrayAgentSet(AgentKind.Patch, "patches", patchArray)
     _patchesWithLabels = 0
     _patchesAllBlack = true
     _mayHavePartiallyTransparentObjects = false
@@ -692,8 +692,8 @@ class World
     clearPatches()
     clearGlobals()
     clearLinks()
-    _observer.resetPerspective()
-    mayHavePartiallyTransparentObjects = false
+    observer.resetPerspective()
+    _mayHavePartiallyTransparentObjects = false
   }
 
   // in a 2D world the drawing lives in the
@@ -714,17 +714,17 @@ class World
       false
     }
 
-  def getDrawing: AnyRef = _trailDrawer.getDrawing()
+  def getDrawing: AnyRef = _trailDrawer.getDrawing
 
-  def sendPixels(): Boolean = _trailDrawer.sendPixels()
+  def sendPixels: Boolean = _trailDrawer.sendPixels
 
   def markDrawingClean(): Unit = {
     _trailDrawer.sendPixels(false)
   }
 
   def clearPatches(): Unit = {
-    val iter = _patches.iterator()
-    while(iter.hasNext()) {
+    val iter = _patches.iterator
+    while(iter.hasNext) {
       val patch = iter.next().asInstanceOf[Patch]
       patch.pcolorDoubleUnchecked(Color.BoxedBlack)
       patch.label("")
@@ -740,7 +740,7 @@ class World
         case ex: AgentException => throw new IllegalStateException(ex)
       }
     }
-    patchesAllBlack = true;
+    _patchesAllBlack = true
   }
 
   def clearTurtles(): Unit = {
@@ -754,16 +754,16 @@ class World
     while (iter.hasNext) {
       val turtle = iter.next().asInstanceOf[Turtle]
       lineThicknesses.remove(turtle)
-      linkManager.clearTurtle(turtle)
+      linkManager.cleanupTurtle(turtle)
       turtle.id(-1)
     }
     _turtles.clear()
-    val patchIter = _patches.iterator()
+    val patchIter = _patches.iterator
     while (patchIter.hasNext) {
       iter.next().asInstanceOf[Patch].clearTurtles()
     }
     _nextTurtleIndex = 0
-    _observer.updatePosition()
+    observer.updatePosition()
   }
 
   def clearLinks(): Unit = {
@@ -784,10 +784,10 @@ class World
 
   def clearGlobals(): Unit = {
     var j = _program.interfaceGlobals.size
-    while (j < _observer.variables.length) {
+    while (j < observer.variables.length) {
       try {
-        val con = Option(_observer.variableConstraint(j))
-        _observer.setObserverVariable(j, con.map(_.defaultValue()).getOrElse(Zero))
+        val con = Option(observer.variableConstraint(j))
+        observer.setObserverVariable(j, con.map(_.defaultValue).getOrElse(Zero))
       } catch {
         case ex: AgentException => throw new IllegalStateException(ex)
         case ex: LogoException  => throw new IllegalStateException(ex)
@@ -818,12 +818,13 @@ class World
     }
 
     if (_program.linkBreeds.nonEmpty) {
-      _program.linkBreeds.foreach { linkBreed =>
-        val breedName = linkBreed.name.toUpperCase
-        val directed = breed.isDirected
-        val breedSet = Option(oldLinkBreeds.get(breedName)).getOrElse(new TreeAgentSet(AgentKind.Link, breedName))
-        breedSet.setDirected(directed)
-        linkBreeds.put(breedName, breedSet)
+      _program.linkBreeds.foreach {
+        case (_, linkBreed) =>
+          val breedName = linkBreed.name.toUpperCase
+          val directed = linkBreed.isDirected
+          val breedSet = Option(oldLinkBreeds.get(breedName)).getOrElse(new TreeAgentSet(AgentKind.Link, breedName))
+          breedSet.setDirected(directed)
+          linkBreeds.put(breedName, breedSet)
       }
     } else {
       linkBreeds.clear()
@@ -840,9 +841,9 @@ class World
         while (iter.hasNext) {
           Option(iter.next().realloc(compiling)).foreach(doomedAgents.add)
         }
-        val doomedIter = doomedAgents.iterator()
+        val doomedIter = doomedAgents.iterator
         while (doomedIter.hasNext) {
-          i.next.asInstanceOf[Turtle].die()
+          doomedIter.next().asInstanceOf[Turtle].die()
         }
         doomedAgents.clear()
       }
@@ -856,9 +857,9 @@ class World
         while (iter.hasNext) {
           Option(iter.next().realloc(compiling)).foreach(doomedAgents.add)
         }
-        val doomedIter = doomedAgents.iterator()
+        val doomedIter = doomedAgents.iterator
         while (doomedIter.hasNext) {
-          i.next.asInstanceOf[Link].die()
+          doomedIter.next().asInstanceOf[Link].die()
         }
         doomedAgents.clear()
       }
@@ -870,7 +871,7 @@ class World
       // Note: we only need to realloc() if the patch variables have changed.
       //  ~Forrest ( 5/2/2007)
       if (_patches != null && ((! compiling) || _program.patchesOwn != _oldProgram.patchesOwn)) {
-        val iter = _patches.iterator()
+        val iter = _patches.iterator
         while (iter.hasNext) {
           iter.next().realloc(compiling)
         }
@@ -879,7 +880,7 @@ class World
       case ex: AgentException => throw new IllegalStateException(ex)
     }
     // call Agent.realloc() on the observer
-    _observer.realloc(compiling)
+    observer.realloc(compiling)
     // and finally...
     setUpShapes(false)
     buildBreedCaches()
@@ -944,8 +945,8 @@ class World
         if (breed == _turtles) turtlesOwnIndexOf(name)
         else {
           val breedIndexOf = breedsOwnIndexOf(breed, name)
-          if (breedsOwnIndexOf != -1) breedIndexOf
-          else turtlesOwnIndexOf(name)
+          if (breedIndexOf != -1) breedIndexOf
+          else                    turtlesOwnIndexOf(name)
         }
       case link: Link =>
         val breed = link.getBreed
@@ -953,7 +954,7 @@ class World
         else {
           val breedIndexOf = linkBreedsOwnIndexOf(breed, name)
           if (breedIndexOf != -1) breedIndexOf
-          else linksOwnIndexOf(name)
+          else                    linksOwnIndexOf(name)
         }
       case _ => patchesOwnIndexOf(name)
     }
@@ -967,7 +968,7 @@ class World
   def patchesOwnIndexOf(name: String): Int = _program.patchesOwn.indexOf(name)
   def observerOwnsNameAt(index: Int): String = _program.globals(index)
   def observerOwnsIndexOf(name: String): Int =
-    _observer.variableIndex(name.toUpperCase)
+    observer.variableIndex(name.toUpperCase)
 
   def getBreeds:      JMap[String, _ <: org.nlogo.agent.AgentSet] = breeds
   def getAgentBreeds: JMap[String, AgentSet] = breeds
@@ -979,11 +980,11 @@ class World
   def breedsOwnNameAt(breed: org.nlogo.api.AgentSet, index: Int): String =
     _program.breeds(breed.printName).owns(index - _program.turtlesOwn.size)
   def breedsOwnIndexOf(breed: AgentSet, name: String): Int =
-    breedsOwnCache.get(breed.printName + "~" + name, NegativeOneInt).intValue
+    breedsOwnCache.getOrDefault(breed.printName + "~" + name, NegativeOneInt).intValue
   def getBreedSingular(breed: AgentSet): String =
     if (breed == _turtles) "TURTLE"
     else
-      _program.breeds().get(breed.printName).map(_.singular).getOrElse("TURTLE")
+      _program.breeds.get(breed.printName).map(_.singular).getOrElse("TURTLE")
 
   // TODO: Get rid of this method
   def getLinkBreeds:      JMap[String, _ <: org.nlogo.agent.AgentSet] = linkBreeds
@@ -991,16 +992,16 @@ class World
   def getLinkBreed(breedName: String): AgentSet = linkBreeds.get(breedName)
   def isLinkBreed(breed: AgentSet): Boolean =
     _program.linkBreeds.isDefinedAt(breed.printName)
-  def linkBreedOwns(breed: AgentSet, String: name): Boolean =
+  def linkBreedOwns(breed: AgentSet, name: String): Boolean =
     breed != _links && linkBreedsOwnIndexOf(breed, name) != -1
   def linkBreedsOwnNameAt(breed: AgentSet, index: Int): String =
     _program.linkBreeds(breed.printName).owns(index - _program.linksOwn.size)
   def linkBreedsOwnIndexOf(breed: AgentSet, name: String): Int =
-    breedsOwnCache.get(breed.printName + "~" + name, NegativeOneInt).intValue
+    breedsOwnCache.getOrDefault(breed.printName + "~" + name, NegativeOneInt).intValue
   def getLinkBreedSingular(breed: AgentSet): String =
     if (breed == _links) "LINK"
     else
-      _program.linkBreeds().get(breed.printName).map(_.singular).getOrElse("LINK")
+      _program.linkBreeds.get(breed.printName).map(_.singular).getOrElse("LINK")
 
   //TODO: We can remove these if we pass _oldProgram to realloc
   def oldTurtlesOwnIndexOf(name: String): Int = _oldProgram.turtlesOwn.indexOf(name)
@@ -1108,8 +1109,8 @@ class World
 
     breeds.clear()
     linkBreeds.clear()
-    createBreeds(_program.breeds(), breeds)
-    createBreeds(_program.linkBreeds(), linkBreeds)
+    createBreeds(_program.breeds, breeds)
+    createBreeds(_program.linkBreeds, linkBreeds)
   }
 
   def newProgram: Program = {
@@ -1138,21 +1139,21 @@ class World
   /// accessing observer variables by name;
 
   def getObserverVariableByName(varName: String): AnyRef = {
-    val index = _observer.variableIndex(varName.toUpperCase)
+    val index = observer.variableIndex(varName.toUpperCase)
     if (index >= 0)
-      _observer.variables(index)
+      observer.variables(index)
     else
-      throw new IllegalArgumentException(s"\"${varName}\" not found");
+      throw new IllegalArgumentException(s""""${varName}" not found""")
   }
 
   @throws(classOf[AgentException])
   @throws(classOf[LogoException])
   def setObserverVariableByName(varName: String, value: Object): Unit = {
-    val index = _observer.variableIndex(varName.toUpperCase)
+    val index = observer.variableIndex(varName.toUpperCase)
     if (index != -1)
-      _observer.setObserverVariable(index, value)
+      observer.setObserverVariable(index, value)
     else
-      throw new IllegalArgumentException(s"\"${varName}\" not found");
+      throw new IllegalArgumentException(s""""${varName}" not found""")
   }
 
   def compiler_=(compiler: CompilerServices): Unit = {
@@ -1208,7 +1209,7 @@ class World
     }
   }
 
-  def setUpShapes(clearOld: boolean): Unit = {
+  def setUpShapes(clearOld: Boolean): Unit = {
     turtleBreedShapes.setUpBreedShapes(clearOld, breeds)
     linkBreedShapes.setUpBreedShapes(clearOld, linkBreeds)
   }
