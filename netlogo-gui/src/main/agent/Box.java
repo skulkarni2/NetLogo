@@ -38,7 +38,7 @@ final strictfp class Box
 
   @Override
   double distanceWrap(double dx, double dy, double x1, double y1, double x2, double y2) {
-    return world.rootsTable.gridRoot(dx * dx + dy * dy);
+    return world.rootsTable().gridRoot(dx * dx + dy * dy);
   }
 
   @Override
@@ -312,8 +312,8 @@ final strictfp class Box
     double yLoc = source.pycor;
 
     // special cases when we only have one patch in the world
-    if (xLoc == world._maxPxcor && xLoc == world._minPxcor &&
-        yLoc == world._maxPycor && yLoc == world._minPycor) {
+    if (xLoc == world.maxPxcor() && xLoc == world.minPxcor() &&
+        yLoc == world.maxPycor() && yLoc == world.minPycor()) {
       return AgentSet.emptyPatchSet();
     }
 

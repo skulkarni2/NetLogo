@@ -38,10 +38,10 @@ public strictfp class Protractor
     double tmpx = x;
     double tmpy = y;
 
-    if (x2 < world._minPxcor) {
-      x -= world._worldWidth;
-    } else if (x2 > world._maxPxcor) {
-      x += world._worldWidth;
+    if (x2 < world.minPxcor()) {
+      x -= world.worldWidth();
+    } else if (x2 > world.maxPxcor()) {
+      x += world.worldWidth();
     }
 
     p = closestPoint(x, y, x1, y1, xdiff, ydiff);
@@ -50,10 +50,10 @@ public strictfp class Protractor
       return distance(p[0], p[1], x, y, true);
     }
 
-    if (y2 < world._minPycor) {
-      y -= world._worldHeight;
-    } else if (y2 > world._maxPycor) {
-      y += world._worldHeight;
+    if (y2 < world.minPycor()) {
+      y -= world.worldHeight();
+    } else if (y2 > world.maxPycor()) {
+      y += world.worldHeight();
     }
 
     p = closestPoint(x, y, x1, y1, xdiff, ydiff);
@@ -161,10 +161,10 @@ public strictfp class Protractor
                          boolean wrap) {
     double dx = x2 - x1;
     double dy = y2 - y1;
-    double distanceNoWrap = world.rootsTable.gridRoot(dx * dx + dy * dy);
+    double distanceNoWrap = world.rootsTable().gridRoot(dx * dx + dy * dy);
 
     if (wrap) {
-      double distanceWrap = world.topology.distanceWrap(dx, dy, x1, y1, x2, y2);
+      double distanceWrap = world.topology().distanceWrap(dx, dy, x1, y1, x2, y2);
 
       if (distanceWrap < distanceNoWrap) {
         return distanceWrap;
@@ -278,7 +278,7 @@ public strictfp class Protractor
     double dx = toX - fromX;
     double dy = toY - fromY;
     if (wrap) {
-      return world.topology.towardsWrap(dx, dy);
+      return world.topology().towardsWrap(dx, dy);
     }
     if (dx == 0) {
       return dy > 0 ? 0 : 180;
@@ -348,8 +348,8 @@ public strictfp class Protractor
     double dy = toY - fromY;
     double dz = toZ - fromZ;
     if (wrap) {
-      dx = Topology.wrap(dx, world._minPxcor - 0.5, world._maxPxcor + 0.5);
-      dy = Topology.wrap(dy, world._minPycor - 0.5, world._maxPycor + 0.5);
+      dx = Topology.wrap(dx, world.minPxcor() - 0.5, world.maxPxcor() + 0.5);
+      dy = Topology.wrap(dy, world.minPycor() - 0.5, world.maxPycor() + 0.5);
     }
 
     return StrictMath.toDegrees

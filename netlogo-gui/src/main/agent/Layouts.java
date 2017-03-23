@@ -527,7 +527,7 @@ public final strictfp class Layouts {
     double rootX = (world.minPxcor() + world.maxPxcor()) / 2.0;
     double rootY = (world.minPycor() + world.maxPycor()) / 2.0;
 
-    org.nlogo.agent.LinkManager linkManager = world.linkManager;
+    org.nlogo.agent.LinkManager linkManager = world.linkManager();
 
     Map<Turtle, TreeNode> nodeTable =
         new HashMap<Turtle, TreeNode>(nodeset.count());

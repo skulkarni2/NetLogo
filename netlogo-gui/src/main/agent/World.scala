@@ -91,6 +91,9 @@ class World
 
   private var _nextTurtleIndex: Long = 0
 
+  protected val dimensionVariableNames =
+    Seq("MIN-PXCOR", "MAX-PXCOR", "MIN-PYCOR", "MAX-PYCOR", "WORLD-WIDTH", "WORLD-HEIGHT")
+
   // we assign an unique ID to links, like turtles, except that
   // it's not visible to anyone and it can't affect the outcome of
   // the model. I added it because it greatly complicates hubnet
@@ -119,29 +122,29 @@ class World
 
   // possibly need another array for 3D colors
   // since it seems messy to collapse 3D array into 2D
-  private var _patchColors: Array[Int] = _
+  protected var _patchColors: Array[Int] = _
 
   // GLView
   // this is used by the OpenGL texture code to decide whether
   // it needs to make a new texture or not - ST 2/9/05
-  private var _patchColorsDirty: Boolean = true
+  protected var _patchColorsDirty: Boolean = true
 
   // performance optimization -- avoid drawing an all-black bitmap if we
   // could just paint one big black rectangle
-  private var _patchesAllBlack = true
+  protected var _patchesAllBlack = true
 
   // for efficiency in Renderer
-  private var _patchesWithLabels: Int = 0
+  protected var _patchesWithLabels: Int = 0
 
   /// patch scratch
   //  a scratch area that can be used by commands such as _diffuse
-  private var _patchScratch: Array[Array[Double]] = _
+  protected var _patchScratch: Array[Array[Double]] = _
 
   // performance optimization for 3D renderer -- avoid sorting by distance
   // from observer unless we need to.  once this flag becomes true, we don't
   // work as hard as we could to return it back to false, because doing so
   // would be expensive.  we just reset it at clear-all time.
-  private var _mayHavePartiallyTransparentObjects = false
+  protected var _mayHavePartiallyTransparentObjects = false
 
   private var _displayOn: Boolean = true
 
@@ -182,12 +185,12 @@ class World
   var _maxPxcor: Int = _
 
   // boxed versions of geometry/size methods, for efficiency
-  var _worldWidthBoxed: JDouble = _
-  var _worldHeightBoxed: JDouble = _
-  var _minPxcorBoxed: JDouble = _
-  var _minPycorBoxed: JDouble = _
-  var _maxPxcorBoxed: JDouble = _
-  var _maxPycorBoxed: JDouble = _
+  var _worldWidthBoxed: JDouble = JDouble.valueOf(_worldWidth)
+  var _worldHeightBoxed: JDouble = JDouble.valueOf(_worldHeight)
+  var _minPxcorBoxed: JDouble = JDouble.valueOf(_minPxcor)
+  var _minPycorBoxed: JDouble = JDouble.valueOf(_minPycor)
+  var _maxPxcorBoxed: JDouble = JDouble.valueOf(_maxPxcor)
+  var _maxPycorBoxed: JDouble = JDouble.valueOf(_maxPycor)
 
   changeTopology(true, true)
 
@@ -200,7 +203,7 @@ class World
   createPatches(_minPxcor, _maxPxcor, _minPycor, _maxPycor);
   setUpShapes(true);
 
-  private def createObserver(): Observer =
+  protected def createObserver(): Observer =
     new Observer(this)
 
   /// empty agentsets
@@ -311,8 +314,8 @@ class World
   def worldHeight: Int = _worldHeight
   def minPxcor: Int = _minPxcor
   def minPycor: Int = _minPycor
-  def maxPycor: Int = _maxPycor
   def maxPxcor: Int = _maxPxcor
+  def maxPycor: Int = _maxPycor
 
   @throws(classOf[AgentException])
   def wrapX(x: Double): Double = topology.wrapX(x)
@@ -387,13 +390,13 @@ class World
   // This is also true in 3D (with the x-coordinate corresponding to a stride
   // of 1, the y-coordinate with a stride of world-width, and the z-coordinate
   // with a stride of world-width * world-height)
-  private var _patches: IndexedAgentSet = null
+  protected var _patches: IndexedAgentSet = null
   def patches: IndexedAgentSet = _patches
 
-  private var _turtles: TreeAgentSet = null
+  protected var _turtles: TreeAgentSet = null
   def turtles: TreeAgentSet = _turtles
 
-  private var _links: TreeAgentSet = null;
+  protected var _links: TreeAgentSet = null;
   def links: TreeAgentSet = _links
 
   def agentKindToAgentSet(agentKind: AgentKind): AgentSet = {
@@ -408,14 +411,8 @@ class World
   def getDimensions: WorldDimensions =
     new WorldDimensions(_minPxcor, _maxPxcor, _minPycor, _maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY)
 
-  def isDimensionVariable(variableName: String): Boolean = {
-    variableName.equalsIgnoreCase("MIN-PXCOR") ||
-    variableName.equalsIgnoreCase("MAX-PXCOR") ||
-    variableName.equalsIgnoreCase("MIN-PYCOR") ||
-    variableName.equalsIgnoreCase("MAX-PYCOR") ||
-    variableName.equalsIgnoreCase("WORLD-WIDTH") ||
-    variableName.equalsIgnoreCase("WORLD-HEIGHT")
-  }
+  def isDimensionVariable(variableName: String): Boolean =
+    dimensionVariableNames.contains(variableName.toUpperCase)
 
   @throws(classOf[WorldDimensionException])
   def setDimensionVariable(variableName: String, value: Int, d: WorldDimensions): WorldDimensions = {
@@ -599,6 +596,9 @@ class World
   private[agent] def patchesAllBlack(areBlack: Boolean): Unit = { _patchesAllBlack = areBlack }
 
   def mayHavePartiallyTransparentObjects: Boolean = _mayHavePartiallyTransparentObjects
+  private[agent] def mayHavePartiallyTransparentObjects(have: Boolean): Unit = {
+    _mayHavePartiallyTransparentObjects = have
+  }
 
   def patchColors: Array[Int] = _patchColors
 
@@ -668,7 +668,7 @@ class World
     Arrays.fill(_patchColors, Color.getARGBbyPremodulatedColorNumber(0.0))
     _patchColorsDirty = true
 
-    val numVariables = _program.patchesOwn.size;
+    val numVariables = _program.patchesOwn.size
 
     observer.resetPerspective()
 

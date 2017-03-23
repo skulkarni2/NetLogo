@@ -142,7 +142,7 @@ public strictfp class Importer
         if (line[0].trim().equals("RANDOM STATE")) {
           hasMoreLines(false);
           line = nextLine();
-          world.mainRNG.load(line[0]);
+          world.mainRNG().load(line[0]);
         }
       }
 
@@ -390,7 +390,7 @@ public strictfp class Importer
               ("The data was not the correct length for the size of the world");
         }
 
-        world.trailDrawer.setColors(colors);
+        world.trailDrawer().setColors(colors);
       } catch (StringReaderException e) {
         throw new InvalidDataException
             ("invalid drawing data: drawing will not be imported");
@@ -540,7 +540,7 @@ public strictfp class Importer
         world.links().setDirected(str.equals("DIRECTED"));
       }
     } else if (header.equals(TICKS_HEADER)) {
-      world.tickCounter.ticks_$eq(((Double) val).doubleValue());
+      world.tickCounter().ticks_$eq(((Double) val).doubleValue());
     }
   }
 
@@ -840,7 +840,7 @@ public strictfp class Importer
   void setVarVal(Agent agent, int index, String header, Object value) {
     try {
       if (value instanceof Junk) {
-        value = World.ZERO;
+        value = World.Zero();
       }
       agent.setVariable(index, value);
     } catch (AgentException ae) {
@@ -925,7 +925,7 @@ public strictfp class Importer
             ae.getMessage(),
             "setting " + turtle + "'s shape to its breed's default shape");
       }
-      setVarVal(turtle, varIndex, header, world.turtleBreedShapes.breedShape
+      setVarVal(turtle, varIndex, header, world.turtleBreedShapes().breedShape
           (turtle.getBreed()));
     }
   }

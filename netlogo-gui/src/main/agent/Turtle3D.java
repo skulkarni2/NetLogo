@@ -39,7 +39,7 @@ public final strictfp class Turtle3D
 
     variables[VAR_COLOR3D] = Color.BoxedBlack();
     heading = 0;
-    variables[VAR_HEADING3D] = World.ZERO;
+    variables[VAR_HEADING3D] = World.Zero();
     this.xcor = xcor.doubleValue();
     if (xcor instanceof Double) {
       variables[VAR_XCOR3D] = xcor;
@@ -48,13 +48,13 @@ public final strictfp class Turtle3D
     if (ycor instanceof Double) {
       variables[VAR_YCOR3D] = ycor;
     }
-    variables[VAR_SHAPE3D] = world.turtleBreedShapes.breedShape(breed);
+    variables[VAR_SHAPE3D] = world.turtleBreedShapes().breedShape(breed);
     variables[VAR_LABEL3D] = "";
     variables[VAR_LABELCOLOR3D] = Color.BoxedWhite();
     variables[VAR_BREED3D] = breed;
     variables[VAR_HIDDEN3D] = Boolean.FALSE;
-    variables[VAR_SIZE3D] = World.ONE;
-    variables[VAR_PENSIZE3D] = World.ONE;
+    variables[VAR_SIZE3D] = World.One();
+    variables[VAR_PENSIZE3D] = World.One();
     variables[VAR_PENMODE3D] = PEN_UP;
   }
 
@@ -73,14 +73,14 @@ public final strictfp class Turtle3D
     initvars(xcor, ycor, breed);
 
     for (int i = LAST_PREDEFINED_VAR + 1; i < variables.length; i++) {
-      variables[i] = World.ZERO;
+      variables[i] = World.Zero();
     }
     if (breed != world.turtles()) {
       ((TreeAgentSet) breed).add(this);
     }
 
-    variables[VAR_PITCH3D] = World.ZERO;
-    variables[VAR_ROLL3D] = World.ZERO;
+    variables[VAR_PITCH3D] = World.Zero();
+    variables[VAR_ROLL3D] = World.Zero();
     this.zcor = zcor.doubleValue();
     if (zcor instanceof Double) {
       variables[VAR_ZCOR3D] = zcor;
@@ -94,7 +94,7 @@ public final strictfp class Turtle3D
 
   Turtle3D(World world, long id) {
     this((World3D) world, world.turtles(),
-        World.ZERO, World.ZERO, World.ZERO,
+        World.Zero(), World.Zero(), World.Zero(),
         false);
     id(id);
     world.turtles().add(this);
@@ -439,7 +439,7 @@ public final strictfp class Turtle3D
     if (this == world.observer().targetAgent()) {
       world.observer().updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleOrientationChanged(heading, pitch, this.roll(),
           heading, originalPitch, this.roll());
     }
@@ -458,7 +458,7 @@ public final strictfp class Turtle3D
     if (this == world.observer().targetAgent()) {
       world.observer().updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleOrientationChanged(this.heading(), this.pitch(), roll,
           this.heading(), this.pitch(), originalRoll);
     }
@@ -485,7 +485,7 @@ public final strictfp class Turtle3D
     if (this == world.observer().targetAgent()) {
       world.observer().updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleOrientationChanged(heading, pitch, roll,
           originalHeading, originalPitch, originalRoll);
     }
@@ -569,8 +569,8 @@ public final strictfp class Turtle3D
       if (this == observer.targetAgent()) {
         observer.updatePosition();
       }
-      if (world.tieManager.hasTies()) {
-        ((TieManager3D) world.tieManager).turtleMoved(this, x, y, z, oldX, oldY, oldZ);
+      if (world.tieManager().hasTies()) {
+        ((TieManager3D) world.tieManager()).turtleMoved(this, x, y, z, oldX, oldY, oldZ);
       }
     }
   }
@@ -597,7 +597,7 @@ public final strictfp class Turtle3D
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(xcor, ycor, zcor, oldX, ycor, zcor);
     }
   }
@@ -629,7 +629,7 @@ public final strictfp class Turtle3D
       observer.updatePosition();
     }
 
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(x, ycor, zcor, oldX, ycor, zcor);
     }
   }
@@ -657,7 +657,7 @@ public final strictfp class Turtle3D
       originalPatch.removeTurtle(this);
       targetPatch.addTurtle(this);
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(xcor, ycor, zcor, xcor, ycor, oldZ);
     }
   }
@@ -684,7 +684,7 @@ public final strictfp class Turtle3D
       originalPatch.removeTurtle(this);
       targetPatch.addTurtle(this);
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(xcor, ycor, z, xcor, ycor, oldZ);
     }
   }
@@ -711,7 +711,7 @@ public final strictfp class Turtle3D
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(xcor, ycor, zcor, xcor, oldY, zcor);
     }
   }
@@ -742,7 +742,7 @@ public final strictfp class Turtle3D
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(xcor, y, zcor, xcor, oldY, zcor);
     }
   }
@@ -772,7 +772,7 @@ public final strictfp class Turtle3D
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(xcor, ycor, zcor, oldX, oldY, zcor);
     }
   }
@@ -806,7 +806,7 @@ public final strictfp class Turtle3D
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(x, y, zcor, oldX, oldY, zcor);
     }
   }
@@ -842,7 +842,7 @@ public final strictfp class Turtle3D
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(xcor, ycor, zcor, oldX, oldY, oldZ);
     }
   }
@@ -879,14 +879,14 @@ public final strictfp class Turtle3D
     if (this == observer.targetAgent()) {
       observer.updatePosition();
     }
-    if (world.tieManager.hasTies()) {
+    if (world.tieManager().hasTies()) {
       turtleMoved(x, y, z, oldX, oldY, oldZ);
     }
   }
 
   @Override
   public void home() {
-    xyandzcor(World.ZERO, World.ZERO, World.ZERO);
+    xyandzcor(World.Zero(), World.Zero(), World.Zero());
   }
 
   @Override
@@ -1003,7 +1003,7 @@ public final strictfp class Turtle3D
       ((TreeAgentSet) breed).add(this);
     }
     variables[VAR_BREED3D] = breed;
-    shape(world.turtleBreedShapes.breedShape(breed));
+    shape(world.turtleBreedShapes().breedShape(breed));
     realloc(false, oldBreed);
   }
 
@@ -1093,12 +1093,12 @@ public final strictfp class Turtle3D
   ///
 
   private void turtleMoved(double newX, double newY, double newZ, double oldX, double oldY, double oldZ) {
-    ((TieManager3D) world.tieManager).turtleMoved(this, newX, newY, newZ, oldX, oldY, oldZ);
+    ((TieManager3D) world.tieManager()).turtleMoved(this, newX, newY, newZ, oldX, oldY, oldZ);
   }
 
   private void turtleOrientationChanged(double newHeading, double newPitch, double newRoll,
                                         double oldHeading, double oldPitch, double oldRoll) {
-    ((TieManager3D) world.tieManager).turtleOrientationChanged(this, newHeading, newPitch, newRoll,
+    ((TieManager3D) world.tieManager()).turtleOrientationChanged(this, newHeading, newPitch, newRoll,
         oldHeading, oldPitch, oldRoll);
   }
 

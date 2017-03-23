@@ -107,7 +107,7 @@ public strictfp class InRadiusOrCone {
             // as half the square root of 2 away from its patch center.  If they're
             // away from the patch centers in opposite directions, that makes a total
             // of square root of 2 additional distance we need to take into account.
-            if (world.rootsTable.gridRoot(dx * dx + dy * dy) > radius + 1.415) {
+            if (world.rootsTable().gridRoot(dx * dx + dy * dy) > radius + 1.415) {
               continue;
             }
             for (Turtle turtle : patch.turtlesHere()) {
@@ -251,7 +251,7 @@ public strictfp class InRadiusOrCone {
             // as half the square root of 2 away from its patch center.  If they're
             // away from the patch centers in opposite directions, that makes a total
             // of square root of 2 additional distance we need to take into account.
-            if (world.rootsTable.gridRoot(dx * dx + dy * dy) <= radius + 1.415) {
+            if (world.rootsTable().gridRoot(dx * dx + dy * dy) <= radius + 1.415) {
               for (Turtle turtle : patch.turtlesHere()) {
                 // loop through our world copies
                 outer:

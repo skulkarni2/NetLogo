@@ -36,7 +36,7 @@ public strictfp class Importer3D
   @Override
   void importDrawing()
       throws java.io.IOException {
-    Drawing3D drawing = ((World3D) world).drawing;
+    Drawing3D drawing = ((World3D) world).drawing();
 
     while (hasMoreLines(false)) {
       String[] line = nextLine();

@@ -62,7 +62,7 @@ public final strictfp class Patch3D
           variables[i] = Color.BoxedWhite();
           break;
         default:
-          variables[i] = World.ZERO;
+          variables[i] = World.Zero();
           break;
       }
     }
@@ -215,10 +215,10 @@ public final strictfp class Patch3D
     if (this.pcolor != pcolor) {
       this.pcolor = pcolor;
       variables[VAR_PCOLOR3D] = null;
-      world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
-      world.patchColorsDirty = true;
+      world.patchColors()[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
+      world.patchColorsDirty(true);
       if (pcolor != 0.0) {
-        world.patchesAllBlack = false;
+        world.patchesAllBlack(false);
       }
     }
   }
@@ -231,19 +231,19 @@ public final strictfp class Patch3D
       if (pcolor != color) {
         pcolor = color;
         variables[VAR_PCOLOR3D] = null;
-        world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
-        world.patchColorsDirty = true;
+        world.patchColors()[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
+        world.patchColorsDirty(true);
         if (pcolor != 0.0) {
-          world.patchesAllBlack = false;
+          world.patchesAllBlack(false);
         }
       }
     } else if (pcolor != color) {
       pcolor = color;
       variables[VAR_PCOLOR3D] = boxedColor;
-      world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
-      world.patchColorsDirty = true;
+      world.patchColors()[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
+      world.patchColorsDirty(true);
       if (pcolor != 0.0) {
-        world.patchesAllBlack = false;
+        world.patchesAllBlack(false);
       }
     }
   }
@@ -260,10 +260,10 @@ public final strictfp class Patch3D
     if (color != pcolor) {
       pcolor = color;
       variables[VAR_PCOLOR3D] = boxedColor;
-      world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(color);
-      world.patchColorsDirty = true;
+      world.patchColors()[(int) id] = Color.getARGBbyPremodulatedColorNumber(color);
+      world.patchColorsDirty(true);
       if (color != 0.0) {
-        world.patchesAllBlack = false;
+        world.patchesAllBlack(false);
       }
     }
   }
@@ -283,11 +283,11 @@ public final strictfp class Patch3D
     if (label instanceof String &&
         ((String) label).length() == 0) {
       if (hasLabel()) {
-        world.patchesWithLabels--;
+        world.addPatchLabel();
       }
     } else {
       if (!hasLabel()) {
-        world.patchesWithLabels++;
+        world.removePatchLabel();
       }
     }
     variables[VAR_PLABEL3D] = label;

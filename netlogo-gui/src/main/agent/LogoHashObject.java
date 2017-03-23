@@ -51,7 +51,7 @@ the same values, as well as a dead turtle and a Nobody. - JMD 10/28/03*/
   }
 
   private static final int NOBODY_CODE = Long.valueOf(-1).hashCode();
-  private static final int ZERO_CODE = World.ZERO.hashCode();
+  private static final int ZERO_CODE = World.Zero().hashCode();
 
   public int calcHashCode() {
     // IEEE 754 math involves two different zeros, positive zero and negative

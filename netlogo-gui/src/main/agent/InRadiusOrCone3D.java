@@ -92,7 +92,7 @@ public strictfp class InRadiusOrCone3D
       dzmin = -(int) StrictMath.ceil(depth - 1);
     }
 
-    Protractor3D protractor = (Protractor3D) world._protractor;
+    Protractor3D protractor = world.protractor();
 
     for (int dz = dzmin; dz <= dzmax; dz++) {
       for (int dy = dymin; dy <= dymax; dy++) {
@@ -283,7 +283,7 @@ public strictfp class InRadiusOrCone3D
   private boolean isInCone(double x, double y, double z,
                            double cx, double cy, double cz,
                            double r, double half, double h, double p) {
-    Protractor3D protractor = (Protractor3D) world.protractor();
+    Protractor3D protractor = world.protractor();
 
     if (x == cx && y == cy && z == cz) {
       return true;

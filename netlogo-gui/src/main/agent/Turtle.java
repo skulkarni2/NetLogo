@@ -60,18 +60,18 @@ public strictfp class Turtle
   void initvars(Double xcor, Double ycor, AgentSet breed) {
     variables[VAR_COLOR] = Color.BoxedBlack();
     heading = 0;
-    variables[VAR_HEADING] = World.ZERO;
+    variables[VAR_HEADING] = World.Zero();
     this.xcor = xcor.doubleValue();
     variables[VAR_XCOR] = xcor;
     this.ycor = ycor.doubleValue();
     variables[VAR_YCOR] = ycor;
-    variables[VAR_SHAPE] = world.turtleBreedShapes.breedShape(breed);
+    variables[VAR_SHAPE] = world.turtleBreedShapes().breedShape(breed);
     variables[VAR_LABEL] = "";
     variables[VAR_LABELCOLOR] = Color.BoxedWhite();
     variables[VAR_BREED] = breed;
     variables[VAR_HIDDEN] = Boolean.FALSE;
-    variables[VAR_SIZE] = World.ONE;
-    variables[VAR_PENSIZE] = World.ONE;
+    variables[VAR_SIZE] = World.One();
+    variables[VAR_PENSIZE] = World.One();
     variables[VAR_PENMODE] = PEN_UP;
   }
 
@@ -89,7 +89,7 @@ public strictfp class Turtle
     initvars(xcor, ycor, breed);
 
     for (int i = LAST_PREDEFINED_VAR + 1; i < variables.length; i++) {
-      variables[i] = World.ZERO;
+      variables[i] = World.Zero();
     }
     if (breed != world.turtles()) {
       ((TreeAgentSet) breed).add(this);
@@ -101,7 +101,7 @@ public strictfp class Turtle
   // the idth slot in the agents array, if the slot was empty.  it is up to the caller to make sure
   // that the slot is open.  --mas 12/18/01
   Turtle(World world, long id) {
-    this(world, world.turtles(), World.ZERO, World.ZERO, false);
+    this(world, world.turtles(), World.Zero(), World.Zero(), false);
     id(id);
     world.turtles().add(this);
   }
@@ -137,7 +137,7 @@ public strictfp class Turtle
     if (id == -1) {
       return;
     }
-    world.linkManager.cleanupTurtle(this);
+    world.linkManager().cleanupTurtle(this);
     Patch patch = getPatchHere();
     patch.removeTurtle(this);
     AgentSet breed = getBreed();
@@ -202,7 +202,7 @@ public strictfp class Turtle
         String name = world.turtlesOwnNameAt(i);
         int oldpos = world.oldTurtlesOwnIndexOf(name);
         if (oldpos == -1) {
-          variables[i] = World.ZERO;
+          variables[i] = World.Zero();
         } else {
           variables[i] = oldvars[oldpos];
           oldvars[oldpos] = null;
@@ -216,7 +216,7 @@ public strictfp class Turtle
       int oldpos = compiling ? world.oldBreedsOwnIndexOf(getBreed(), name)
           : world.breedsOwnIndexOf(oldBreed, name);
       if (oldpos == -1) {
-        variables[i] = World.ZERO;
+        variables[i] = World.Zero();
       } else {
         variables[i] = oldvars[oldpos];
         oldvars[oldpos] = null;
@@ -620,7 +620,7 @@ public strictfp class Turtle
     validRGBList(rgb, true);
     variables[varIndex] = rgb;
     if(rgb.size() > 3) {
-      world.mayHavePartiallyTransparentObjects = true;
+      world.mayHavePartiallyTransparentObjects(true);
     }
   }
 
@@ -1056,7 +1056,7 @@ public strictfp class Turtle
 
   public void home() {
     try {
-      xandycor(World.ZERO, World.ZERO);
+      xandycor(World.Zero(), World.Zero());
     } catch (AgentException e) {
       // this will never happen since we require 0,0 be inside the world.
       throw new IllegalStateException(e);
@@ -1175,7 +1175,7 @@ public strictfp class Turtle
       ((TreeAgentSet) breed).add(this);
     }
     variables[VAR_BREED] = breed;
-    shape(world.turtleBreedShapes.breedShape(breed));
+    shape(world.turtleBreedShapes().breedShape(breed));
     realloc(false, oldBreed);
   }
 

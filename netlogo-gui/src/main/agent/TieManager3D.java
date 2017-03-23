@@ -140,7 +140,7 @@ public strictfp class TieManager3D
             // In order to get wrapping and line drawing to work properly
             // we have to compute our transform in coordinates relative to the
             // root turtle -- CLB 05/11/06
-            double[] leaf = ((Protractor3D) (world3D.protractor())).towardsVector
+            double[] leaf = world3D.protractor().towardsVector
                 (root.xcor(), root.ycor(), root.zcor(),
                     t.xcor(), t.ycor(), t.zcor(), true);
             htrans.transform(leaf, out, 1);

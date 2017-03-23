@@ -66,7 +66,7 @@ public final strictfp class _life
         patch.pcolor(bgcolor);
       }
     }
-    world.tickCounter.tick(1);
+    world.tickCounter().tick(1);
     context.ip = next;
   }
 }

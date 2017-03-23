@@ -5,7 +5,7 @@ package org.nlogo.agent;
 import org.nlogo.api.AgentException;
 
 public strictfp class Protractor3D
-    extends Protractor {
+    extends Protractor implements org.nlogo.api.Protractor3D {
 
   private final World3D world;
 
@@ -62,7 +62,7 @@ public strictfp class Protractor3D
     double distanceNoWrap = StrictMath.sqrt(dx * dx + dy * dy + dz * dz);
 
     if (wrap) {
-      double distanceWrap = ((Topology3D) world.topology).distanceWrap
+      double distanceWrap = ((Topology3D) world.topology()).distanceWrap
           (dx, dy, dz, x1, y1, z1, x2, y2, z2);
 
       if (distanceWrap < distanceNoWrap) {
@@ -179,7 +179,7 @@ public strictfp class Protractor3D
     double dy = toY - fromY;
     double dz = toZ - fromZ;
     if (wrap) {
-      return ((Topology3D) world.topology).towardsPitchWrap(dx, dy, dz);
+      return ((Topology3D) world.topology()).towardsPitchWrap(dx, dy, dz);
     }
 
     return ((360 + StrictMath.toDegrees
@@ -200,9 +200,9 @@ public strictfp class Protractor3D
     double dy = toY - fromY;
     double dz = toZ - fromZ;
     if (wrap) {
-      dx = Topology.wrap(dx, world._minPxcor - 0.5, world._maxPxcor + 0.5);
-      dy = Topology.wrap(dy, world._minPycor - 0.5, world._maxPycor + 0.5);
-      dz = Topology.wrap(dz, world._minPzcor - 0.5, world._maxPzcor + 0.5);
+      dx = Topology.wrap(dx, world.minPxcor() - 0.5, world.maxPxcor() + 0.5);
+      dy = Topology.wrap(dy, world.minPycor() - 0.5, world.maxPycor() + 0.5);
+      dz = Topology.wrap(dz, world.minPzcor() - 0.5, world.maxPzcor() + 0.5);
     }
 
     return new double[]{dx, dy, dz};

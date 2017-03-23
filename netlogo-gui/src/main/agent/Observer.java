@@ -33,7 +33,7 @@ public strictfp class Observer
     ValueConstraint[] newcons = new ValueConstraint[world.getVariablesArraySize(this)];
     String[] newVarNames = new String[world.getVariablesArraySize(this)];
     for (int i = 0; newvars.length != i; i++) {
-      newvars[i] = World.ZERO;
+      newvars[i] = World.Zero();
       newcons[i] = null;
       newVarNames[i] = world.program().globals().apply(i);
     }

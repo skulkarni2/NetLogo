@@ -89,7 +89,7 @@ public final strictfp class _fire
       if (pcolor == GREEN) {
         if (((Double) patch.variables[COUNTS_VAR]).doubleValue() > 0) {
           // set fire 1
-          patch.variables[FIRE_VAR] = World.ONE;
+          patch.variables[FIRE_VAR] = World.One();
           // set pcolor red
           patch.pcolorDoubleUnchecked(BOXED_RED);
           // set burned-trees burned-trees + 1

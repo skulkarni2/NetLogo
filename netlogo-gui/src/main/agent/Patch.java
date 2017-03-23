@@ -90,7 +90,7 @@ public strictfp class Patch
           variables[i] = Color.BoxedWhite();
           break;
         default:
-          variables[i] = World.ZERO;
+          variables[i] = World.Zero();
           break;
       }
     }
@@ -110,7 +110,7 @@ public strictfp class Patch
       if (i < NUMBER_PREDEFINED_VARS) {
         newvars[i] = oldvars[i];
       } else {
-        newvars[i] = World.ZERO;
+        newvars[i] = World.Zero();
       }
     }
     // Keep Variables Across Recompile
@@ -377,7 +377,7 @@ public strictfp class Patch
     if (this.pcolor != pcolor) {
       this.pcolor = pcolor;
       variables[VAR_PCOLOR] = null;
-      world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
+      world.patchColors()[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
       world.patchColorsDirty(true);
       if (pcolor != 0.0) {
         world.patchesAllBlack(false);
@@ -392,7 +392,7 @@ public strictfp class Patch
       if (pcolor != color) {
         pcolor = color;
         variables[VAR_PCOLOR] = null;
-        world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
+        world.patchColors()[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
         world.patchColorsDirty(true);
         if (pcolor != 0.0) {
           world.patchesAllBlack(false);
@@ -401,7 +401,7 @@ public strictfp class Patch
     } else if (pcolor != color) {
       pcolor = color;
       variables[VAR_PCOLOR] = boxedColor;
-      world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
+      world.patchColors()[(int) id] = Color.getARGBbyPremodulatedColorNumber(pcolor);
       world.patchColorsDirty(true);
       if (pcolor != 0.0) {
         world.patchesAllBlack(false);
@@ -414,7 +414,7 @@ public strictfp class Patch
     if (color != pcolor) {
       pcolor = color;
       variables[VAR_PCOLOR] = boxedColor;
-      world.patchColors[(int) id] = Color.getARGBbyPremodulatedColorNumber(color);
+      world.patchColors()[(int) id] = Color.getARGBbyPremodulatedColorNumber(color);
       world.patchColorsDirty(true);
       if (color != 0.0) {
         world.patchesAllBlack(false);
@@ -434,13 +434,13 @@ public strictfp class Patch
 
     if (!(variables[varIndex] instanceof LogoList) || !rgb.equals(variables[varIndex])) {
       variables[varIndex] = rgb;
-      world.patchColors[(int) id] = Color.getRGBInt(((Double) rgb.get(0)).intValue(),
+      world.patchColors()[(int) id] = Color.getRGBInt(((Double) rgb.get(0)).intValue(),
           ((Double) rgb.get(1)).intValue(),
           ((Double) rgb.get(2)).intValue());
       world.patchColorsDirty(true);
       world.patchesAllBlack(false);
       if(rgb.size() > 3) {
-        world.mayHavePartiallyTransparentObjects = true;
+        world.mayHavePartiallyTransparentObjects(true);
       }
     }
   }
