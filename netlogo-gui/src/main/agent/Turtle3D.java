@@ -88,11 +88,11 @@ public final strictfp class Turtle3D
     getPatchHere().addTurtle(this);
   }
 
-  Turtle3D(World world) {
+  Turtle3D(World3D world) {
     super(world);
   }
 
-  Turtle3D(World world, long id) {
+  Turtle3D(World3D world, long id) {
     this((World3D) world, world.turtles(),
         World.Zero(), World.Zero(), World.Zero(),
         false);

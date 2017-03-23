@@ -25,8 +25,7 @@ object World {
   val Zero = JDouble.valueOf(0.0)
   val One  = JDouble.valueOf(1.0)
 
-  private val NegativeOneInt = JInteger.valueOf(-1)
-
+  val NegativeOneInt = JInteger.valueOf(-1)
 
   trait VariableWatcher {
     /**
@@ -41,20 +40,602 @@ object World {
 
 import World._
 
+trait WorldLifecycle {
+  def clearAll(): Unit
+  def observer: Observer
+  def patches: IndexedAgentSet
+  def turtles: TreeAgentSet
+  def links: TreeAgentSet
+  private[agent] def breeds: JMap[String, AgentSet]
+  private[agent] def linkBreeds: JMap[String, AgentSet]
+}
+
+trait CoreWorld
+  extends org.nlogo.api.World
+  with WorldLifecycle
+  with DimensionHelpers
+  with org.nlogo.api.WorldRenderable
+  with org.nlogo.api.WorldWithWorldRenderable {
+
+    val tieManager: TieManager
+
+    val observer: Observer = createObserver()
+    val observers: AgentSet = AgentSet.fromAgent(observer)
+
+    val tickCounter: TickCounter = new TickCounter()
+
+    private[agent] def breeds: JMap[String, AgentSet]
+    private[agent] def linkBreeds: JMap[String, AgentSet]
+
+    def linkManager: LinkManager
+    // Patches are indexed in row-major order. See `getPatchAt`.
+    // This is also true in 3D (with the x-coordinate corresponding to a stride
+    // of 1, the y-coordinate with a stride of world-width, and the z-coordinate
+    // with a stride of world-width * world-height)
+    protected var _patches: IndexedAgentSet = null
+    def patches: IndexedAgentSet = _patches
+
+    protected var _turtles: TreeAgentSet = null
+    def turtles: TreeAgentSet = _turtles
+
+    protected var _links: TreeAgentSet = null;
+    def links: TreeAgentSet = _links
+
+    private[agent] var topology: Topology = _
+
+    def getLinkVariablesArraySize(breed: AgentSet): Int
+
+    protected def createObserver(): Observer
+
+  def getSingular(breed: AgentSet): String
+  def getLinkBreedSingular(breed: AgentSet): String
+
+    abstract override def clearAll(): Unit = {
+      super.clearAll()
+      tickCounter.clear()
+    }
+
+    def ticks: Double = tickCounter.ticks
+}
+
+trait DimensionHelpers {
+  def topology: Topology
+
+  /// world geometry
+  var _worldWidth: Int = _
+  var _worldHeight: Int = _
+  var _minPxcor: Int = _
+  var _minPycor: Int = _
+  var _maxPycor: Int = _
+  var _maxPxcor: Int = _
+  protected var _patchSize: Double = 12.0
+
+  def worldWidth: Int = _worldWidth
+  def worldHeight: Int = _worldHeight
+  def minPxcor: Int = _minPxcor
+  def minPycor: Int = _minPycor
+  def maxPxcor: Int = _maxPxcor
+  def maxPycor: Int = _maxPycor
+
+  // boxed versions of geometry/size methods, for efficiency
+  var _worldWidthBoxed: JDouble = JDouble.valueOf(_worldWidth)
+  var _worldHeightBoxed: JDouble = JDouble.valueOf(_worldHeight)
+  var _minPxcorBoxed: JDouble = JDouble.valueOf(_minPxcor)
+  var _minPycorBoxed: JDouble = JDouble.valueOf(_minPycor)
+  var _maxPxcorBoxed: JDouble = JDouble.valueOf(_maxPxcor)
+  var _maxPycorBoxed: JDouble = JDouble.valueOf(_maxPycor)
+
+  def patchSize: Double = _patchSize
+
+  def patchSize(patchSize: Double): Boolean =
+    if (_patchSize != patchSize) {
+      _patchSize = patchSize
+      true
+    } else {
+      false
+    }
+
+  def worldWidthBoxed = _worldWidthBoxed
+  def worldHeightBoxed = _worldHeightBoxed
+  def minPxcorBoxed = _minPxcorBoxed
+  def minPycorBoxed = _minPycorBoxed
+  def maxPxcorBoxed = _maxPxcorBoxed
+  def maxPycorBoxed = _maxPycorBoxed
+
+  // These are just being used for setting the checkboxes in the ViewWidget config dialog
+  //   with default values. These should no be used within World to control any behavior.
+  //   All wrapping related behavior specific to a topology is/should-be hardcoded in the methods
+  //   for each specific topological implementation.
+  def wrappingAllowedInX: Boolean =
+    topology.isInstanceOf[Torus] || topology.isInstanceOf[VertCylinder]
+
+  def wrappingAllowedInY: Boolean =
+    topology.isInstanceOf[Torus] || topology.isInstanceOf[HorizCylinder]
+
+  @throws(classOf[WorldDimensionException])
+  def setDimensionVariable(variableName: String, value: Int, d: WorldDimensions): WorldDimensions = {
+    if (variableName.equalsIgnoreCase("MIN-PXCOR")) {
+      new WorldDimensions(value,      d.maxPxcor, d.minPycor, d.maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
+    } else if (variableName.equalsIgnoreCase("MAX-PXCOR")) {
+      new WorldDimensions(d.minPxcor, value,      d.minPycor, d.maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
+    } else if (variableName.equalsIgnoreCase("MIN-PYCOR")) {
+      new WorldDimensions(d.minPxcor, d.maxPxcor, value,      d.maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
+    } else if (variableName.equalsIgnoreCase("MAX-PYCOR")) {
+      new WorldDimensions(d.minPxcor, d.maxPxcor, d.minPycor, value,     patchSize, wrappingAllowedInX, wrappingAllowedInY);
+    } else if (variableName.equalsIgnoreCase("WORLD-WIDTH")) {
+      val minPxcor = growMin(d.minPxcor, d.maxPxcor, value, d.minPxcor)
+      val maxPxcor = growMax(d.minPxcor, d.maxPxcor, value, d.maxPxcor)
+      new WorldDimensions(minPxcor, maxPxcor, d.minPycor, d.maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
+    } else if (variableName.equalsIgnoreCase("WORLD-HEIGHT")) {
+      val minPycor = growMin(d.minPycor, d.maxPycor, value, d.minPycor)
+      val maxPycor = growMax(d.minPycor, d.maxPycor, value, d.maxPycor)
+      new WorldDimensions(d.minPxcor, d.maxPxcor, minPycor, maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
+    } else {
+      d
+    }
+  }
+
+  def equalDimensions(d: WorldDimensions): Boolean =
+    d.minPxcor == minPxcor &&
+      d.maxPxcor == maxPxcor &&
+      d.minPycor == minPycor &&
+      d.maxPycor == maxPycor
+
+  @throws(classOf[WorldDimensionException])
+  def growMin(min: Int, max: Int, value: Int, d: Int): Int = {
+    if (value < 1) {
+      throw new WorldDimensionException()
+    }
+
+    if (max == -min) {
+      if (value % 2 != 1) {
+        throw new WorldDimensionException()
+      }
+      -(value - 1) / 2
+    } else if (max == 0)
+    -(value - 1)
+  else
+    return d
+  }
+
+  @throws(classOf[WorldDimensionException])
+  def growMax(min: Int, max: Int, value: Int, d: Int): Int = {
+    if (value < 1) {
+      throw new WorldDimensionException()
+    }
+
+    if (max == -min) {
+      if (value % 2 != 1) {
+        throw new WorldDimensionException()
+      }
+      (value - 1) / 2
+    } else if (min == 0)
+    (value - 1)
+  else
+    d
+  }
+
+  @throws(classOf[AgentException])
+  def roundX(x: Double): Int = {
+    // floor() is slow so we don't use it
+    val wrappedX =
+      try {
+        topology.wrapX(x)
+      } catch {
+        case ex: AgentException => throw new AgentException("Cannot access patches beyond the limits of current world.")
+      }
+    if (wrappedX > 0) {
+      (wrappedX + 0.5).toInt
+    } else {
+      val intPart = wrappedX.toInt
+      val fractPart = intPart - wrappedX
+      if (fractPart > 0.5) intPart - 1 else intPart
+    }
+  }
+
+  @throws(classOf[AgentException])
+  def roundY(y: Double): Int = {
+    // floor() is slow so we don't use it
+    val wrappedY =
+      try {
+        topology.wrapY(y);
+      } catch {
+        case ex: AgentException => throw new AgentException("Cannot access patches beyond the limits of current world.")
+      }
+    if (wrappedY > 0) {
+      (wrappedY + 0.5).toInt
+    } else {
+      val intPart = wrappedY.toInt
+      val fractPart = intPart - wrappedY
+      if (fractPart > 0.5) intPart - 1 else intPart
+    }
+  }
+}
+
+trait TurtleManagement extends WorldLifecycle { this: CoreWorld =>
+  def program: Program
+  protected def breedsOwnCache: JHashMap[String, Integer]
+
+  private var _nextTurtleIndex: Long = 0
+
+  private[agent] var breeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
+
+  def turtlesOwnNameAt(index: Int): String = program.turtlesOwn(index)
+  def turtlesOwnIndexOf(name: String): Int = program.turtlesOwn.indexOf(name)
+
+  def getBreeds:      JMap[String, _ <: org.nlogo.agent.AgentSet] = breeds
+  def getAgentBreeds: JMap[String, AgentSet] = breeds
+  def getBreed(breedName: String): AgentSet = breeds.get(breedName)
+  def isBreed(breed: AgentSet): Boolean =
+    program.breeds.isDefinedAt(breed.printName)
+  def breedOwns(breed: AgentSet, name: String): Boolean =
+    breed != turtles && breedsOwnIndexOf(breed, name) != -1
+  def breedsOwnNameAt(breed: org.nlogo.api.AgentSet, index: Int): String =
+    program.breeds(breed.printName).owns(index - program.turtlesOwn.size)
+  def breedsOwnIndexOf(breed: AgentSet, name: String): Int =
+    breedsOwnCache.getOrDefault(breed.printName + "~" + name, NegativeOneInt).intValue
+  def getBreedSingular(breed: AgentSet): String =
+    if (breed == turtles) "TURTLE"
+    else
+      program.breeds.get(breed.printName).map(_.singular).getOrElse("TURTLE")
+
+  def getTurtle(id: Long): Turtle =
+    _turtles.getAgent(JDouble.valueOf(id)).asInstanceOf[Turtle]
+
+  def nextTurtleIndex(nextTurtleIndex: Long): Unit = {
+    _nextTurtleIndex = nextTurtleIndex
+  }
+
+  def nextTurtleIndex: Long = _nextTurtleIndex
+
+  // used by Importer and Parser
+  def getOrCreateTurtle(id: Long): Turtle = {
+    val turtle = getTurtle(id).asInstanceOf[Turtle]
+    if (turtle == null) {
+      val newTurtle = new Turtle(this, id)
+      _nextTurtleIndex = StrictMath.max(nextTurtleIndex, id + 1)
+      newTurtle
+    } else {
+      turtle
+    }
+  }
+
+  protected val lineThicknesses: JMap[Agent, JDouble] = new JHashMap[Agent, JDouble]()
+
+  def setLineThickness(agent: Agent, size: Double): Unit = {
+    lineThicknesses.put(agent, JDouble.valueOf(size))
+  }
+
+  def lineThickness(agent: Agent): Double = {
+    val size = lineThicknesses.get(agent)
+    if (size != null)
+      size.doubleValue()
+    else
+      0.0
+  }
+
+  def removeLineThickness(agent: Agent): Unit =
+    lineThicknesses.remove(agent)
+
+  def newTurtleId(): Long = {
+    val r = _nextTurtleIndex
+    _nextTurtleIndex += 1
+    r
+  }
+
+  abstract override def clearAll() {
+    super.clearAll()
+    clearTurtles()
+  }
+
+  def clearTurtles(): Unit = {
+    if (program.breeds.nonEmpty) {
+      var breedIterator = breeds.values.iterator
+      while (breedIterator.hasNext) {
+        breedIterator.next().asInstanceOf[TreeAgentSet].clear()
+      }
+    }
+    val iter = turtles.iterator
+    while (iter.hasNext) {
+      val turtle = iter.next().asInstanceOf[Turtle]
+      lineThicknesses.remove(turtle)
+      linkManager.cleanupTurtle(turtle)
+      turtle.id(-1)
+    }
+    turtles.clear()
+    val patchIter = patches.iterator
+    while (patchIter.hasNext) {
+      patchIter.next().asInstanceOf[Patch].clearTurtles()
+    }
+    _nextTurtleIndex = 0
+    observer.updatePosition()
+  }
+}
+
+trait LinkManagement extends WorldLifecycle {
+  def program: Program
+  def linkManager: LinkManager
+  def turtles: TreeAgentSet
+  protected def breedsOwnCache: JHashMap[String, Integer]
+
+  // we assign an unique ID to links, like turtles, except that
+  // it's not visible to anyone and it can't affect the outcome of
+  // the model. I added it because it greatly complicates hubnet
+  // view mirroring to have the only unique identifier be a
+  // 3 element list. ev 5/1/08
+  private var _nextLinkIndex: Long = 0
+
+  private[agent] var linkBreeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
+
+  def linksOwnIndexOf(name: String): Int = program.linksOwn.indexOf(name)
+  def linksOwnNameAt(index: Int): String = program.linksOwn(index)
+  def getLinkBreeds:      JMap[String, _ <: org.nlogo.agent.AgentSet] = linkBreeds
+  def getLinkAgentBreeds: JMap[String, AgentSet] = linkBreeds
+  def getLinkBreed(breedName: String): AgentSet = linkBreeds.get(breedName)
+  def isLinkBreed(breed: AgentSet): Boolean =
+    program.linkBreeds.isDefinedAt(breed.printName)
+  def linkBreedOwns(breed: AgentSet, name: String): Boolean =
+    breed != links && linkBreedsOwnIndexOf(breed, name) != -1
+  def linkBreedsOwnNameAt(breed: AgentSet, index: Int): String =
+    program.linkBreeds(breed.printName).owns(index - program.linksOwn.size)
+  def linkBreedsOwnIndexOf(breed: AgentSet, name: String): Int =
+    breedsOwnCache.getOrDefault(breed.printName + "~" + name, NegativeOneInt).intValue
+  def getLinkBreedSingular(breed: AgentSet): String =
+    if (breed == links)
+      "LINK"
+    else
+      program.linkBreeds.get(breed.printName).map(_.singular).getOrElse("LINK")
+
+  def newLinkId(): Long = {
+    val r = _nextLinkIndex
+    _nextLinkIndex += 1
+    r
+  }
+
+  abstract override def clearAll() {
+    super.clearAll()
+    clearLinks()
+  }
+
+  def clearLinks(): Unit = {
+    if (program.linkBreeds.nonEmpty) {
+      val breedIterator = linkBreeds.values.iterator
+      while (breedIterator.hasNext) {
+        breedIterator.next().asInstanceOf[TreeAgentSet].clear()
+      }
+    }
+    val iter = links.iterator
+    while (iter.hasNext) {
+      iter.next().asInstanceOf[Link].id = -1
+    }
+    links.clear()
+    _nextLinkIndex = 0
+    linkManager.reset()
+  }
+
+  def getLink(end1: Object, end2: Object, breed: AgentSet): Link = {
+    linkManager.getLink(
+      turtles.getAgent(end1).asInstanceOf[Turtle],
+      turtles.getAgent(end2).asInstanceOf[Turtle], breed).orNull
+  }
+}
+
+trait AgentManagement extends TurtleManagement with LinkManagement with WorldLifecycle { this: CoreWorld =>
+  def program: Program
+  def patches: IndexedAgentSet
+  def turtles: TreeAgentSet
+  def links: TreeAgentSet
+  def observer: Observer
+
+  def patchesOwnNameAt(index: Int): String = program.patchesOwn(index)
+  def patchesOwnIndexOf(name: String): Int = program.patchesOwn.indexOf(name)
+  def observerOwnsNameAt(index: Int): String = program.globals(index)
+  def observerOwnsIndexOf(name: String): Int =
+    observer.variableIndex(name.toUpperCase)
+
+  private var breedsOwnCache: JHashMap[String, Integer] = new JHashMap[String, Integer]()
+
+  def createPatches(minPx: Int, maxPx: Int, minPy: Int, maxPy: Int)
+
+  /// creating & clearing
+  def createPatches(dim: WorldDimensions): Unit = {
+    createPatches(dim.minPxcor, dim.maxPxcor, dim.minPycor, dim.maxPycor)
+  }
+
+  def indexOfVariable(agentKind: AgentKind, name: String): Int = {
+    if (agentKind == AgentKind.Observer)
+      observerOwnsIndexOf(name)
+    else if (agentKind == AgentKind.Turtle)
+      turtlesOwnIndexOf(name)
+    else if (agentKind == AgentKind.Link)
+      linksOwnIndexOf(name)
+    else
+      patchesOwnIndexOf(name)
+  }
+
+  abstract override def clearAll(): Unit = {
+    super.clearAll()
+    clearPatches()
+    clearGlobals()
+    observer.resetPerspective()
+  }
+
+  def getOrCreateLink(end1: JDouble, end2: JDouble, breed: AgentSet): Link = {
+    getOrCreateLink(
+      getOrCreateTurtle(end1.longValue),
+      getOrCreateTurtle(end2.longValue), breed)
+  }
+
+  def getOrCreateLink(end1: Turtle, end2: Turtle, breed: AgentSet): Link = {
+    val link = getLink(end1.agentKey, end2.agentKey, breed);
+    if (link == null) {
+      linkManager.createLink(end1, end2, breed)
+    } else {
+      link
+    }
+  }
+
+  def getOrCreateDummyLink(end1: Object, end2: Object, breed: AgentSet): Link = {
+    val linkOption =
+      if (end1 == Nobody || end2 == Nobody) None
+      else
+        Option(
+          getLink(
+            end1.asInstanceOf[Turtle].agentKey,
+            end2.asInstanceOf[Turtle].agentKey, breed))
+
+    linkOption.getOrElse(new DummyLink(this, end1, end2, breed))
+  }
+
+  def indexOfVariable(agent: Agent, name: String): Int = {
+    agent match {
+      case observer: Observer => observerOwnsIndexOf(name)
+      case turtle: Turtle =>
+        val breed = turtle.getBreed
+        if (breed == _turtles) turtlesOwnIndexOf(name)
+        else {
+          val breedIndexOf = breedsOwnIndexOf(breed, name)
+          if (breedIndexOf != -1) breedIndexOf
+          else                    turtlesOwnIndexOf(name)
+        }
+      case link: Link =>
+        val breed = link.getBreed
+        if (breed == _links) linksOwnIndexOf(name)
+        else {
+          val breedIndexOf = linkBreedsOwnIndexOf(breed, name)
+          if (breedIndexOf != -1) breedIndexOf
+          else                    linksOwnIndexOf(name)
+        }
+      case _ => patchesOwnIndexOf(name)
+    }
+  }
+  protected def buildBreedCaches(): Unit = {
+    breedsOwnCache = new JHashMap[String, Integer](16, 0.5f);
+
+    val breedIter = breeds.values.iterator
+    while (breedIter.hasNext) {
+      val breed = breedIter.next().asInstanceOf[AgentSet]
+      val offset = program.turtlesOwn.size
+      for {
+        b            <- program.breeds.get(breed.printName)
+        (varName, i) <- b.owns.zipWithIndex
+      } {
+        val key = breed.printName + "~" + varName
+        breedsOwnCache.put(key, new Integer(offset + i))
+      }
+    }
+
+    val linkBreedIter = linkBreeds.values.iterator
+    while (linkBreedIter.hasNext) {
+      val linkBreed = linkBreedIter.next().asInstanceOf[AgentSet]
+      val offset = program.linksOwn.size
+      for {
+        b            <- program.linkBreeds.get(linkBreed.printName)
+        (varName, i) <- b.owns.zipWithIndex
+      } {
+        val key = linkBreed.printName + "~" + varName
+        breedsOwnCache.put(key, new Integer(offset + i))
+      }
+    }
+  }
+
+  def clearPatches(): Unit = {
+    val iter = patches.iterator
+    while(iter.hasNext) {
+      val patch = iter.next().asInstanceOf[Patch]
+      patch.pcolorDoubleUnchecked(Color.BoxedBlack)
+      patch.label("")
+      patch.labelColor(Color.BoxedWhite)
+      try {
+        // TODO: we should consider using Arrays.fill here...
+        var j = patch.NUMBER_PREDEFINED_VARS
+        while (j < patch.variables.length) {
+          patch.setPatchVariable(j, Zero)
+          j += 1
+        }
+      } catch {
+        case ex: AgentException => throw new IllegalStateException(ex)
+      }
+    }
+  }
+
+  def clearGlobals(): Unit = {
+    var j = program.interfaceGlobals.size
+    while (j < observer.variables.length) {
+      try {
+        val con = Option(observer.variableConstraint(j))
+        observer.setObserverVariable(j, con.map(_.defaultValue).getOrElse(Zero))
+      } catch {
+        case ex: AgentException => throw new IllegalStateException(ex)
+        case ex: LogoException  => throw new IllegalStateException(ex)
+      }
+      j += 1
+    }
+  }
+}
+
+// The vars and methods in this track the rendering state of the world.
+// They should be considered transient and equality should not take them into account.
+trait GrossWorldState extends WorldLifecycle { this: CoreWorld =>
+  private[agent] var rootsTable: RootsTable = _
+
+  // possibly need another array for 3D colors
+  // since it seems messy to collapse 3D array into 2D
+  protected var _patchColors: Array[Int] = _
+  def patchColors: Array[Int] = _patchColors
+
+  // this is used by the OpenGL texture code to decide whether
+  // it needs to make a new texture or not - ST 2/9/05
+  protected var _patchColorsDirty: Boolean = true
+  def patchColorsDirty: Boolean = _patchColorsDirty
+  private[agent] def patchColorsDirty(dirty: Boolean): Unit = { _patchColorsDirty = dirty }
+  def markPatchColorsDirty(): Unit = { _patchColorsDirty = true }
+  def markPatchColorsClean(): Unit = { _patchColorsDirty = false }
+
+  // performance optimization -- avoid drawing an all-black bitmap if we
+  // could just paint one big black rectangle
+  protected var _patchesAllBlack = true
+  def patchesAllBlack: Boolean = _patchesAllBlack
+  private[agent] def patchesAllBlack(areBlack: Boolean): Unit = { _patchesAllBlack = areBlack }
+
+  // for efficiency in Renderer
+  protected var _patchesWithLabels: Int = 0
+  def patchesWithLabels: Int = _patchesWithLabels
+  private[agent] def addPatchLabel(): Unit = { _patchesWithLabels += 1 }
+  private[agent] def removePatchLabel(): Unit = { _patchesWithLabels -= 1 }
+
+  /// patch scratch
+  //  a scratch area that can be used by commands such as _diffuse
+  protected var _patchScratch: Array[Array[Double]] = _
+  def getPatchScratch: Array[Array[Double]] = {
+    if (_patchScratch == null) {
+      _patchScratch = Array.ofDim[Double](_worldWidth, _worldHeight)
+    }
+    _patchScratch
+  }
+
+  // performance optimization for 3D renderer -- avoid sorting by distance
+  // from observer unless we need to.  once this flag becomes true, we don't
+  // work as hard as we could to return it back to false, because doing so
+  // would be expensive.  we just reset it at clear-all time.
+  protected var _mayHavePartiallyTransparentObjects = false
+  def mayHavePartiallyTransparentObjects: Boolean = _mayHavePartiallyTransparentObjects
+  private[agent] def mayHavePartiallyTransparentObjects(have: Boolean): Unit = {
+    _mayHavePartiallyTransparentObjects = have
+  }
+
+  abstract override def clearAll(): Unit = {
+    _patchesAllBlack = true
+    _mayHavePartiallyTransparentObjects = false
+  }
+}
+
 // A note on wrapping: normally whether x and y coordinates wrap is a
 // product of the topology.  But we also have the old "-nowrap" primitives
 // that don't wrap regardless of what the topology is.  So that's why many
 // methods like distance() and towards() take a boolean argument "wrap";
 // it's true for the normal prims, false for the nowrap prims. - ST 5/24/06
-
-class World
-  extends org.nlogo.api.World
-  with org.nlogo.api.WorldRenderable
-  with org.nlogo.api.WorldWithWorldRenderable {
-
-  val tickCounter: TickCounter = new TickCounter()
-
-  def ticks: Double = tickCounter.ticks
+class World extends CoreWorld with AgentManagement with GrossWorldState {
 
   val timer: Timer = new Timer()
 
@@ -64,18 +645,13 @@ class World
   val linkShapes = new ShapeListTracker(AgentKind.Link)
   def linkShapeList = linkShapes.shapeList
 
-  private val lineThicknesses: JMap[Agent, JDouble] = new JHashMap[Agent, JDouble]()
-  private var _patchSize: Double = 12.0
   private var _trailDrawer: TrailDrawerInterface = _
-
-  private[agent] var topology: Topology = _
-  private[agent] var rootsTable: RootsTable = _
 
   val protractor: Protractor = new Protractor(this)
 
   val linkManager: LinkManager =
     new LinkManagerImpl(this,
-      new LinkFactory() {
+      new LinkFactory[World]() {
         def apply(world: World, src: Turtle, dest: Turtle, breed: AgentSet): Link = {
           new Link(world, src, dest, breed)
         }
@@ -87,19 +663,8 @@ class World
   private[agent] var breeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
   private[agent] var linkBreeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
 
-  private var breedsOwnCache: JHashMap[String, Integer] = new JHashMap[String, Integer]();
-
-  private var _nextTurtleIndex: Long = 0
-
   protected val dimensionVariableNames =
     Seq("MIN-PXCOR", "MAX-PXCOR", "MIN-PYCOR", "MAX-PYCOR", "WORLD-WIDTH", "WORLD-HEIGHT")
-
-  // we assign an unique ID to links, like turtles, except that
-  // it's not visible to anyone and it can't affect the outcome of
-  // the model. I added it because it greatly complicates hubnet
-  // view mirroring to have the only unique identifier be a
-  // 3 element list. ev 5/1/08
-  private var _nextLinkIndex: Long = 0
 
   private var _compiler: CompilerServices = null
   private var _program: Program = newProgram
@@ -120,40 +685,11 @@ class World
   @volatile
   var comeUpForAir: Boolean = false  // NOPMD pmd doesn't like 'volatile'
 
-  // possibly need another array for 3D colors
-  // since it seems messy to collapse 3D array into 2D
-  protected var _patchColors: Array[Int] = _
-
-  // GLView
-  // this is used by the OpenGL texture code to decide whether
-  // it needs to make a new texture or not - ST 2/9/05
-  protected var _patchColorsDirty: Boolean = true
-
-  // performance optimization -- avoid drawing an all-black bitmap if we
-  // could just paint one big black rectangle
-  protected var _patchesAllBlack = true
-
-  // for efficiency in Renderer
-  protected var _patchesWithLabels: Int = 0
-
-  /// patch scratch
-  //  a scratch area that can be used by commands such as _diffuse
-  protected var _patchScratch: Array[Array[Double]] = _
-
-  // performance optimization for 3D renderer -- avoid sorting by distance
-  // from observer unless we need to.  once this flag becomes true, we don't
-  // work as hard as we could to return it back to false, because doing so
-  // would be expensive.  we just reset it at clear-all time.
-  protected var _mayHavePartiallyTransparentObjects = false
-
   private var _displayOn: Boolean = true
 
 
   val linkBreedShapes = new BreedShapes("LINKS", linkShapes)
   val turtleBreedShapes = new BreedShapes("TURTLES", turtleShapes)
-
-  val observer: Observer = createObserver()
-  val observers: AgentSet = AgentSet.fromAgent(observer)
 
   // anything that affects the outcome of the model should happen on the
   // main RNG
@@ -175,22 +711,7 @@ class World
   // this boolean is micro-optimization to make notifying watchers as fast as possible
   private var hasWatchers: Boolean = false
 
-  /// world geometry
-
-  var _worldWidth: Int = _
-  var _worldHeight: Int = _
-  var _minPxcor: Int = _
-  var _minPycor: Int = _
-  var _maxPycor: Int = _
-  var _maxPxcor: Int = _
-
-  // boxed versions of geometry/size methods, for efficiency
-  var _worldWidthBoxed: JDouble = JDouble.valueOf(_worldWidth)
-  var _worldHeightBoxed: JDouble = JDouble.valueOf(_worldHeight)
-  var _minPxcorBoxed: JDouble = JDouble.valueOf(_minPxcor)
-  var _minPycorBoxed: JDouble = JDouble.valueOf(_minPycor)
-  var _maxPxcorBoxed: JDouble = JDouble.valueOf(_maxPxcor)
-  var _maxPycorBoxed: JDouble = JDouble.valueOf(_maxPycor)
+  /// observer/turtles/patches
 
   changeTopology(true, true)
 
@@ -255,16 +776,6 @@ class World
   def followOffsetX: Double = observer.followOffsetX
   def followOffsetY: Double = observer.followOffsetY
 
-  // These are just being used for setting the checkboxes in the ViewWidget config dialog
-  //   with default values. These should no be used within World to control any behavior.
-  //   All wrapping related behavior specific to a topology is/should-be hardcoded in the methods
-  //   for each specific topological implementation.
-  def wrappingAllowedInX: Boolean =
-    topology.isInstanceOf[Torus] || topology.isInstanceOf[VertCylinder]
-
-  def wrappingAllowedInY: Boolean =
-    topology.isInstanceOf[Torus] || topology.isInstanceOf[HorizCylinder]
-
   /// export world
 
   def exportWorld(writer: java.io.PrintWriter, full: Boolean): Unit =
@@ -282,40 +793,11 @@ class World
 
   /// line thickness
 
-  def setLineThickness(agent: Agent, size: Double): Unit = {
-    lineThicknesses.put(agent, JDouble.valueOf(size))
-  }
-
-  def lineThickness(agent: Agent): Double = {
-    val size = lineThicknesses.get(agent)
-    if (size != null)
-      size.doubleValue()
-    else
-      0.0
-  }
-
-  def removeLineThickness(agent: Agent): Unit =
-    lineThicknesses.remove(agent)
-
   /// equality
 
   private[nlogo] def drawLine(x0: Double, y0: Double, x1: Double, y1: Double, color: Object, size: Double, mode: String): Unit = {
     trailDrawer.drawLine(x0, y0, x1, y1, color, size, mode)
   }
-
-  def worldWidthBoxed = _worldWidthBoxed
-  def worldHeightBoxed = _worldHeightBoxed
-  def minPxcorBoxed = _minPxcorBoxed
-  def minPycorBoxed = _minPycorBoxed
-  def maxPxcorBoxed = _maxPxcorBoxed
-  def maxPycorBoxed = _maxPycorBoxed
-
-  def worldWidth: Int = _worldWidth
-  def worldHeight: Int = _worldHeight
-  def minPxcor: Int = _minPxcor
-  def minPycor: Int = _minPycor
-  def maxPxcor: Int = _maxPxcor
-  def maxPycor: Int = _maxPycor
 
   @throws(classOf[AgentException])
   def wrapX(x: Double): Double = topology.wrapX(x)
@@ -336,42 +818,6 @@ class World
     topology.diffuse4(param, vn)
 
 
-  @throws(classOf[AgentException])
-  def roundX(x: Double): Int = {
-    // floor() is slow so we don't use it
-    val wrappedX =
-      try {
-        topology.wrapX(x)
-      } catch {
-        case ex: AgentException => throw new AgentException("Cannot access patches beyond the limits of current world.")
-      }
-    if (wrappedX > 0) {
-      (wrappedX + 0.5).toInt
-    } else {
-      val intPart = wrappedX.toInt
-      val fractPart = intPart - wrappedX
-      if (fractPart > 0.5) intPart - 1 else intPart
-    }
-  }
-
-  @throws(classOf[AgentException])
-  def roundY(y: Double): Int = {
-    // floor() is slow so we don't use it
-    val wrappedY =
-      try {
-        topology.wrapY(y);
-      } catch {
-        case ex: AgentException => throw new AgentException("Cannot access patches beyond the limits of current world.")
-      }
-    if (wrappedY > 0) {
-      (wrappedY + 0.5).toInt
-    } else {
-      val intPart = wrappedY.toInt
-      val fractPart = intPart - wrappedY
-      if (fractPart > 0.5) intPart - 1 else intPart
-    }
-  }
-
   def createTurtle(breed: AgentSet): Turtle =
     new Turtle(this, breed, Zero, Zero)
 
@@ -383,21 +829,6 @@ class World
     baby.heading(h)
     baby
   }
-
-  /// observer/turtles/patches
-
-  // Patches are indexed in row-major order. See `getPatchAt`.
-  // This is also true in 3D (with the x-coordinate corresponding to a stride
-  // of 1, the y-coordinate with a stride of world-width, and the z-coordinate
-  // with a stride of world-width * world-height)
-  protected var _patches: IndexedAgentSet = null
-  def patches: IndexedAgentSet = _patches
-
-  protected var _turtles: TreeAgentSet = null
-  def turtles: TreeAgentSet = _turtles
-
-  protected var _links: TreeAgentSet = null;
-  def links: TreeAgentSet = _links
 
   def agentKindToAgentSet(agentKind: AgentKind): AgentSet = {
     agentKind match {
@@ -413,69 +844,6 @@ class World
 
   def isDimensionVariable(variableName: String): Boolean =
     dimensionVariableNames.contains(variableName.toUpperCase)
-
-  @throws(classOf[WorldDimensionException])
-  def setDimensionVariable(variableName: String, value: Int, d: WorldDimensions): WorldDimensions = {
-    if (variableName.equalsIgnoreCase("MIN-PXCOR")) {
-      new WorldDimensions(value,      d.maxPxcor, d.minPycor, d.maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
-    } else if (variableName.equalsIgnoreCase("MAX-PXCOR")) {
-      new WorldDimensions(d.minPxcor, value,      d.minPycor, d.maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
-    } else if (variableName.equalsIgnoreCase("MIN-PYCOR")) {
-      new WorldDimensions(d.minPxcor, d.maxPxcor, value,      d.maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
-    } else if (variableName.equalsIgnoreCase("MAX-PYCOR")) {
-      new WorldDimensions(d.minPxcor, d.maxPxcor, d.minPycor, value,     patchSize, wrappingAllowedInX, wrappingAllowedInY);
-    } else if (variableName.equalsIgnoreCase("WORLD-WIDTH")) {
-      val minPxcor = growMin(d.minPxcor, d.maxPxcor, value, d.minPxcor)
-      val maxPxcor = growMax(d.minPxcor, d.maxPxcor, value, d.maxPxcor)
-      new WorldDimensions(minPxcor, maxPxcor, d.minPycor, d.maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
-    } else if (variableName.equalsIgnoreCase("WORLD-HEIGHT")) {
-      val minPycor = growMin(d.minPycor, d.maxPycor, value, d.minPycor)
-      val maxPycor = growMax(d.minPycor, d.maxPycor, value, d.maxPycor)
-      new WorldDimensions(d.minPxcor, d.maxPxcor, minPycor, maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY);
-    } else {
-      d
-    }
-  }
-
-  @throws(classOf[WorldDimensionException])
-  def growMin(min: Int, max: Int, value: Int, d: Int): Int = {
-    if (value < 1) {
-      throw new WorldDimensionException()
-    }
-
-    if (max == -min) {
-      if (value % 2 != 1) {
-        throw new WorldDimensionException()
-      }
-      -(value - 1) / 2
-    } else if (max == 0)
-      -(value - 1)
-    else
-      return d
-  }
-
-  @throws(classOf[WorldDimensionException])
-  def growMax(min: Int, max: Int, value: Int, d: Int): Int = {
-    if (value < 1) {
-      throw new WorldDimensionException()
-    }
-
-    if (max == -min) {
-      if (value % 2 != 1) {
-        throw new WorldDimensionException()
-      }
-      (value - 1) / 2
-    } else if (min == 0)
-      (value - 1)
-    else
-      d
-  }
-
-  def equalDimensions(d: WorldDimensions): Boolean =
-    d.minPxcor == _minPxcor &&
-      d.maxPxcor == _maxPxcor &&
-      d.minPycor == _minPycor &&
-      d.maxPycor == _maxPycor
 
   def getPatch(id: Int): Patch =
     _patches.getByIndex(id).asInstanceOf[Patch]
@@ -518,98 +886,6 @@ class World
 
   def fastGetPatchAt(xc: Int, yc: Int): Patch =
     getPatch(_worldWidth * (_maxPycor - yc) + xc - _minPxcor)
-
-  def getTurtle(id: Long): Turtle =
-    _turtles.getAgent(JDouble.valueOf(id)).asInstanceOf[Turtle]
-
-  def getLink(end1: Object, end2: Object, breed: AgentSet): Link  = {
-    linkManager.getLink(
-      _turtles.getAgent(end1).asInstanceOf[Turtle],
-      _turtles.getAgent(end2).asInstanceOf[Turtle], breed).orNull
-  }
-
-  def nextTurtleIndex(nextTurtleIndex: Long): Unit = {
-    _nextTurtleIndex = nextTurtleIndex
-  }
-
-  def nextTurtleIndex: Long = _nextTurtleIndex
-
-  def newTurtleId(): Long = {
-    val r = _nextTurtleIndex
-    _nextTurtleIndex += 1
-    r
-  }
-
-  def newLinkId(): Long = {
-    val r = _nextLinkIndex
-    _nextLinkIndex += 1
-    r
-  }
-
-  // used by Importer and Parser
-  def getOrCreateTurtle(id: Long): Turtle = {
-    val turtle = getTurtle(id).asInstanceOf[Turtle]
-    if (turtle == null) {
-      val newTurtle = new Turtle(this, id)
-      _nextTurtleIndex = StrictMath.max(nextTurtleIndex, id + 1)
-      newTurtle
-    } else {
-      turtle
-    }
-  }
-
-  def getOrCreateLink(end1: JDouble, end2: JDouble, breed: AgentSet): Link = {
-    getOrCreateLink(
-      getOrCreateTurtle(end1.longValue),
-      getOrCreateTurtle(end2.longValue), breed)
-  }
-
-  def getOrCreateLink(end1: Turtle, end2: Turtle, breed: AgentSet): Link = {
-    val link = getLink(end1.agentKey, end2.agentKey, breed);
-    if (link == null) {
-      linkManager.createLink(end1, end2, breed)
-    } else {
-      link
-    }
-  }
-
-  def getOrCreateDummyLink(end1: Object, end2: Object, breed: AgentSet): Link = {
-    val linkOption =
-      if (end1 == Nobody || end2 == Nobody) None
-      else
-        Option(
-          getLink(
-            end1.asInstanceOf[Turtle].agentKey,
-            end2.asInstanceOf[Turtle].agentKey, breed))
-
-    linkOption.getOrElse(new DummyLink(this, end1, end2, breed))
-  }
-
-  def patchColorsDirty: Boolean = _patchColorsDirty
-  private[agent] def patchColorsDirty(dirty: Boolean): Unit = { _patchColorsDirty = dirty }
-
-  def markPatchColorsDirty(): Unit = { _patchColorsDirty = true }
-
-  def markPatchColorsClean(): Unit = { _patchColorsDirty = false }
-
-  def patchesAllBlack: Boolean = _patchesAllBlack
-  private[agent] def patchesAllBlack(areBlack: Boolean): Unit = { _patchesAllBlack = areBlack }
-
-  def mayHavePartiallyTransparentObjects: Boolean = _mayHavePartiallyTransparentObjects
-  private[agent] def mayHavePartiallyTransparentObjects(have: Boolean): Unit = {
-    _mayHavePartiallyTransparentObjects = have
-  }
-
-  def patchColors: Array[Int] = _patchColors
-
-  def patchesWithLabels: Int = _patchesWithLabels
-  private[agent] def addPatchLabel(): Unit = { _patchesWithLabels += 1 }
-  private[agent] def removePatchLabel(): Unit = { _patchesWithLabels -= 1 }
-
-  /// creating & clearing
-  def createPatches(dim: WorldDimensions): Unit = {
-    createPatches(dim.minPxcor, dim.maxPxcor, dim.minPycor, dim.maxPycor)
-  }
 
   private def createBreeds(
       programBreeds: scala.collection.Map[String, Breed],
@@ -661,8 +937,6 @@ class World
     }
     _links = new TreeAgentSet(AgentKind.Link, "LINKS")
 
-    var x = minPxcor
-    var y = maxPycor
     val patchArray = new Array[Agent](_worldWidth * _worldHeight)
     _patchColors = new Array[Int](_worldWidth * _worldHeight)
     Arrays.fill(_patchColors, Color.getARGBbyPremodulatedColorNumber(0.0))
@@ -673,29 +947,21 @@ class World
     observer.resetPerspective()
 
     var i = 0
-    while (i < _worldHeight * _worldHeight) {
+    var x = minPxcor
+    var y = maxPycor
+    while (i < _worldWidth * _worldHeight) {
       val patch = new Patch(this, i, x, y, numVariables)
       x += 1
       if (x > maxPxcor) {
         x = minPxcor
         y -= 1
       }
-      patchArray(i) = patch;
+      patchArray(i) = patch
       i += 1
     }
     _patches = new ArrayAgentSet(AgentKind.Patch, "patches", patchArray)
     _patchesWithLabels = 0
     _patchesAllBlack = true
-    _mayHavePartiallyTransparentObjects = false
-  }
-
-  def clearAll(): Unit = {
-    tickCounter.clear()
-    clearTurtles()
-    clearPatches()
-    clearGlobals()
-    clearLinks()
-    observer.resetPerspective()
     _mayHavePartiallyTransparentObjects = false
   }
 
@@ -707,96 +973,12 @@ class World
     trailDrawer.stamp(agent, erase)
   }
 
-  def patchSize: Double = _patchSize
-
-  def patchSize(patchSize: Double): Boolean =
-    if (_patchSize != patchSize) {
-      _patchSize = patchSize
-      true
-    } else {
-      false
-    }
-
   def getDrawing: AnyRef = _trailDrawer.getDrawing
 
   def sendPixels: Boolean = _trailDrawer.sendPixels
 
   def markDrawingClean(): Unit = {
     _trailDrawer.sendPixels(false)
-  }
-
-  def clearPatches(): Unit = {
-    val iter = _patches.iterator
-    while(iter.hasNext) {
-      val patch = iter.next().asInstanceOf[Patch]
-      patch.pcolorDoubleUnchecked(Color.BoxedBlack)
-      patch.label("")
-      patch.labelColor(Color.BoxedWhite)
-      try {
-        // TODO: we should consider using Arrays.fill here...
-        var j = patch.NUMBER_PREDEFINED_VARS
-        while (j < patch.variables.length) {
-          patch.setPatchVariable(j, Zero)
-          j += 1
-        }
-      } catch {
-        case ex: AgentException => throw new IllegalStateException(ex)
-      }
-    }
-    _patchesAllBlack = true
-  }
-
-  def clearTurtles(): Unit = {
-    if (_program.breeds.nonEmpty) {
-      var breedIterator = breeds.values.iterator
-      while (breedIterator.hasNext) {
-        breedIterator.next().asInstanceOf[TreeAgentSet].clear()
-      }
-    }
-    val iter = _turtles.iterator
-    while (iter.hasNext) {
-      val turtle = iter.next().asInstanceOf[Turtle]
-      lineThicknesses.remove(turtle)
-      linkManager.cleanupTurtle(turtle)
-      turtle.id(-1)
-    }
-    _turtles.clear()
-    val patchIter = _patches.iterator
-    while (patchIter.hasNext) {
-      iter.next().asInstanceOf[Patch].clearTurtles()
-    }
-    _nextTurtleIndex = 0
-    observer.updatePosition()
-  }
-
-  def clearLinks(): Unit = {
-    if (_program.linkBreeds.nonEmpty) {
-      val breedIterator = linkBreeds.values.iterator
-      while (breedIterator.hasNext) {
-        breedIterator.next().asInstanceOf[TreeAgentSet].clear()
-      }
-    }
-    val iter = _links.iterator
-    while (iter.hasNext) {
-      iter.next().asInstanceOf[Link].id = -1
-    }
-    _links.clear()
-    _nextLinkIndex = 0
-    linkManager.reset()
-  }
-
-  def clearGlobals(): Unit = {
-    var j = _program.interfaceGlobals.size
-    while (j < observer.variables.length) {
-      try {
-        val con = Option(observer.variableConstraint(j))
-        observer.setObserverVariable(j, con.map(_.defaultValue).getOrElse(Zero))
-      } catch {
-        case ex: AgentException => throw new IllegalStateException(ex)
-        case ex: LogoException  => throw new IllegalStateException(ex)
-      }
-      j += 1
-    }
   }
 
   // this exists to support recompiling a model without causing
@@ -890,121 +1072,7 @@ class World
     _oldProgram = null
   }
 
-  private def buildBreedCaches(): Unit = {
-    breedsOwnCache = new JHashMap[String, Integer](16, 0.5f);
-
-    val breedIter = breeds.values.iterator
-    while (breedIter.hasNext) {
-      val breed = breedIter.next().asInstanceOf[AgentSet]
-      val offset = _program.turtlesOwn.size
-      for {
-        b            <- _program.breeds.get(breed.printName)
-        (varName, i) <- b.owns.zipWithIndex
-      } {
-        val key = breed.printName + "~" + varName
-        breedsOwnCache.put(key, new Integer(offset + i))
-      }
-    }
-
-    val linkBreedIter = linkBreeds.values.iterator
-    while (linkBreedIter.hasNext) {
-      val linkBreed = breedIter.next().asInstanceOf[AgentSet]
-      val offset = _program.linksOwn.size
-      for {
-        b            <- _program.linkBreeds.get(linkBreed.printName)
-        (varName, i) <- b.owns.zipWithIndex
-      } {
-        val key = linkBreed.printName + "~" + varName
-        breedsOwnCache.put(key, new Integer(offset + i))
-      }
-    }
-  }
-
-  def getPatchScratch: Array[Array[Double]] = {
-    if (_patchScratch == null) {
-      _patchScratch = Array.ofDim[Double](_worldWidth, _worldHeight)
-    }
-    _patchScratch
-  }
-
   /// agent-owns
-
-  def indexOfVariable(agentKind: AgentKind, name: String): Int = {
-    if (agentKind == AgentKind.Observer)
-      observerOwnsIndexOf(name)
-    else if (agentKind == AgentKind.Turtle)
-      turtlesOwnIndexOf(name)
-    else if (agentKind == AgentKind.Link)
-      linksOwnIndexOf(name)
-    else
-      patchesOwnIndexOf(name)
-  }
-
-  def indexOfVariable(agent: Agent, name: String): Int = {
-    agent match {
-      case observer: Observer => observerOwnsIndexOf(name)
-      case turtle: Turtle =>
-        val breed = turtle.getBreed
-        if (breed == _turtles) turtlesOwnIndexOf(name)
-        else {
-          val breedIndexOf = breedsOwnIndexOf(breed, name)
-          if (breedIndexOf != -1) breedIndexOf
-          else                    turtlesOwnIndexOf(name)
-        }
-      case link: Link =>
-        val breed = link.getBreed
-        if (breed == _links) linksOwnIndexOf(name)
-        else {
-          val breedIndexOf = linkBreedsOwnIndexOf(breed, name)
-          if (breedIndexOf != -1) breedIndexOf
-          else                    linksOwnIndexOf(name)
-        }
-      case _ => patchesOwnIndexOf(name)
-    }
-  }
-
-  def turtlesOwnNameAt(index: Int): String = _program.turtlesOwn(index)
-  def turtlesOwnIndexOf(name: String): Int = _program.turtlesOwn.indexOf(name)
-  def linksOwnIndexOf(name: String): Int = _program.linksOwn.indexOf(name)
-  def linksOwnNameAt(index: Int): String = _program.linksOwn(index)
-  def patchesOwnNameAt(index: Int): String = _program.patchesOwn(index)
-  def patchesOwnIndexOf(name: String): Int = _program.patchesOwn.indexOf(name)
-  def observerOwnsNameAt(index: Int): String = _program.globals(index)
-  def observerOwnsIndexOf(name: String): Int =
-    observer.variableIndex(name.toUpperCase)
-
-  def getBreeds:      JMap[String, _ <: org.nlogo.agent.AgentSet] = breeds
-  def getAgentBreeds: JMap[String, AgentSet] = breeds
-  def getBreed(breedName: String): AgentSet = breeds.get(breedName)
-  def isBreed(breed: AgentSet): Boolean =
-    _program.breeds.isDefinedAt(breed.printName)
-  def breedOwns(breed: AgentSet, name: String): Boolean =
-    breed != _turtles && breedsOwnIndexOf(breed, name) != -1
-  def breedsOwnNameAt(breed: org.nlogo.api.AgentSet, index: Int): String =
-    _program.breeds(breed.printName).owns(index - _program.turtlesOwn.size)
-  def breedsOwnIndexOf(breed: AgentSet, name: String): Int =
-    breedsOwnCache.getOrDefault(breed.printName + "~" + name, NegativeOneInt).intValue
-  def getBreedSingular(breed: AgentSet): String =
-    if (breed == _turtles) "TURTLE"
-    else
-      _program.breeds.get(breed.printName).map(_.singular).getOrElse("TURTLE")
-
-  // TODO: Get rid of this method
-  def getLinkBreeds:      JMap[String, _ <: org.nlogo.agent.AgentSet] = linkBreeds
-  def getLinkAgentBreeds: JMap[String, AgentSet] = linkBreeds
-  def getLinkBreed(breedName: String): AgentSet = linkBreeds.get(breedName)
-  def isLinkBreed(breed: AgentSet): Boolean =
-    _program.linkBreeds.isDefinedAt(breed.printName)
-  def linkBreedOwns(breed: AgentSet, name: String): Boolean =
-    breed != _links && linkBreedsOwnIndexOf(breed, name) != -1
-  def linkBreedsOwnNameAt(breed: AgentSet, index: Int): String =
-    _program.linkBreeds(breed.printName).owns(index - _program.linksOwn.size)
-  def linkBreedsOwnIndexOf(breed: AgentSet, name: String): Int =
-    breedsOwnCache.getOrDefault(breed.printName + "~" + name, NegativeOneInt).intValue
-  def getLinkBreedSingular(breed: AgentSet): String =
-    if (breed == _links) "LINK"
-    else
-      _program.linkBreeds.get(breed.printName).map(_.singular).getOrElse("LINK")
 
   //TODO: We can remove these if we pass _oldProgram to realloc
   def oldTurtlesOwnIndexOf(name: String): Int = _oldProgram.turtlesOwn.indexOf(name)

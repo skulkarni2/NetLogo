@@ -97,7 +97,7 @@ trait LinkManager {
 //
 
 
-class LinkManagerImpl(world: World, linkFactory: LinkFactory) extends LinkManager {
+class LinkManagerImpl[W <: CoreWorld](world: W, linkFactory: LinkFactory[W]) extends LinkManager {
 
   private var unbreededLinkCount = 0
 

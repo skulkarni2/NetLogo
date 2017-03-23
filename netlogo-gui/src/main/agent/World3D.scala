@@ -12,7 +12,7 @@ import java.util.Arrays
 
 import World._
 
-class World3D extends World with org.nlogo.api.World3D {
+class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement with GrossWorldState {
 
   val drawing: Drawing3D = new Drawing3D(this)
 
@@ -23,8 +23,8 @@ class World3D extends World with org.nlogo.api.World3D {
   private var _patchScratch3d: Array[Array[Array[Double]]] = _
 
   override val linkManager = new LinkManagerImpl(
-    this, new LinkFactory() {
-      override def apply(world: World, src: Turtle, dest: Turtle, breed: AgentSet): Link =
+    this, new LinkFactory[World3D]() {
+      override def apply(world: World3D, src: Turtle, dest: Turtle, breed: AgentSet): Link =
         new Link3D(world, src, dest, breed)
     })
 

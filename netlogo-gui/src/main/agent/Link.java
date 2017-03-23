@@ -63,7 +63,7 @@ public strictfp class Link
 
   public static final Double DEFAULT_COLOR = Double.valueOf(5.0); // gray
 
-  public Link(World world, Turtle end1, Turtle end2, int arraySize) {
+  public Link(CoreWorld world, Turtle end1, Turtle end2, int arraySize) {
     super(world);
     variables = new Object[arraySize];
     variables[VAR_END1] = end1;
@@ -80,7 +80,7 @@ public strictfp class Link
     colorDoubleUnchecked(DEFAULT_COLOR);
   }
 
-  Link(World world, Turtle end1, Turtle end2, AgentSet breed) {
+  Link(CoreWorld world, Turtle end1, Turtle end2, AgentSet breed) {
     super(world);
     variables = new Object[world.getVariablesArraySize(this, breed)];
     variables[VAR_COLOR] = Color.BoxedBlack();

@@ -37,7 +37,7 @@ public final strictfp class Patch3D
 
   public static final int LAST_PREDEFINED_VAR_3D = 5;
 
-  Patch3D(World world, int id, int pxcor, int pycor, int pzcor, int numVariables) {
+  Patch3D(World3D world, int id, int pxcor, int pycor, int pzcor, int numVariables) {
     super(world, pxcor, pycor);
     this.id = id;
     this.pzcor = pzcor;

@@ -2,6 +2,6 @@
 
 package org.nlogo.agent
 
-abstract class LinkFactory {
-  def apply(world: World, src: Turtle, dest: Turtle, breed: AgentSet): Link
+abstract class LinkFactory[W <: CoreWorld] {
+  def apply(world: W, src: Turtle, dest: Turtle, breed: AgentSet): Link
 }
