@@ -21,7 +21,7 @@ class WorldTests extends FunSuite with AbstractTestWorld {
       realloc()
     }
   override def makeTurtle(world: World, cors: Array[Int]) =
-    new Turtle(world, world.turtles(),
+    new Turtle(world, world.turtles,
                cors(0).toDouble, cors(1).toDouble)
   override def makeLink(world: World, ends: Array[Int]) =
     new Link(world, world.getTurtle(ends(0)),
@@ -124,7 +124,7 @@ class WorldTests extends FunSuite with AbstractTestWorld {
 
   test("newly initialized world has -1 ticks") {
     val world = new World()
-    assert(world.ticks() == -1)
+    assert(world.ticks == -1)
   }
 
   /*
