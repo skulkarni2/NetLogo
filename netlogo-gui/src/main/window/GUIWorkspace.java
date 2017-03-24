@@ -900,7 +900,7 @@ public abstract strictfp class GUIWorkspace // can't be both abstract and strict
   public void handle(org.nlogo.window.Events.AddSliderConstraintEvent e) {
     try {
       SliderConstraint con = SliderConstraint.makeSliderConstraint
-          (world().observer(), e.minSpec, e.maxSpec, e.incSpec, e.value, e.slider.name(), this);
+          (world().observer(), e.minSpec, e.maxSpec, e.incSpec, e.value, e.slider.name(), this, this);
       e.slider.removeAllErrors();
       e.slider.setSliderConstraint(con);
       // now we set the constraint in the observer, so that it is enforced.

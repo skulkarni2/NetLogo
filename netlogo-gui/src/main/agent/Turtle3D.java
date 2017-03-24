@@ -93,7 +93,7 @@ public final strictfp class Turtle3D
   }
 
   Turtle3D(World3D world, long id) {
-    this((World3D) world, world.turtles(),
+    this(world, world.turtles(),
         World.Zero(), World.Zero(), World.Zero(),
         false);
     id(id);
@@ -102,7 +102,7 @@ public final strictfp class Turtle3D
 
   @Override
   public Turtle hatch() {
-    Turtle3D child = new Turtle3D(world);
+    Turtle3D child = new Turtle3D((World3D) world);
     child.heading = heading;
     child.xcor = xcor;
     child.ycor = ycor;

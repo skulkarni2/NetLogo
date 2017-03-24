@@ -2,7 +2,7 @@
 
 package org.nlogo.agent
 
-import org.nlogo.core.{ AgentKind, Program, ShapeList, ShapeListTracker }
+import org.nlogo.core.{ AgentKind, Program, Shape, ShapeList, ShapeListTracker }
 
 import java.lang.{ Double => JDouble }
 
@@ -53,6 +53,17 @@ trait LinkManagement extends WorldKernel {
     val r = _nextLinkIndex
     _nextLinkIndex += 1
     r
+  }
+
+  // null indicates failure
+  def checkLinkShapeName(name: String): String = {
+    val lowName = name.toLowerCase();
+    if (linkShapeList.exists(lowName)) lowName
+    else                               null
+  }
+
+  def getLinkShape(name: String): Shape = {
+    linkShapeList.shape(name)
   }
 
   abstract override def clearAll() {

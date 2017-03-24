@@ -12,7 +12,10 @@ import java.util.Arrays
 
 import World._
 
-class World3D extends World with org.nlogo.api.World3D with CompilationManagement {
+class World3D extends World
+  with org.nlogo.api.World3D
+  with CompilationManagement
+  with WatcherManagement {
 
   private var _program: Program = newProgram
 

@@ -7,8 +7,6 @@ import org.nlogo.api.TrailDrawerInterface
 // The vars and methods in this track the rendering state of the world.
 // They should be considered transient and equality should not take them into account.
 trait GrossWorldState extends WorldKernel { this: CoreWorld =>
-  private[agent] var rootsTable: RootsTable = _
-
   // possibly need another array for 3D colors
   // since it seems messy to collapse 3D array into 2D
   protected var _patchColors: Array[Int] = _

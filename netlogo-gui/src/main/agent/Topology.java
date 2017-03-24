@@ -49,7 +49,7 @@ abstract strictfp class Topology {
 
   /// factory method
 
-  public static Topology getTopology(World world, boolean xWrapping, boolean yWrapping) {
+  public static Topology getTopology(World2D world, boolean xWrapping, boolean yWrapping) {
     if (xWrapping) {
       if (yWrapping) {
         return new Torus(world);

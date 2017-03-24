@@ -15,7 +15,11 @@ import World.NegativeOneInt
 trait DimensionManagement {
   private[agent] def topology: Topology
 
+  private[agent] def getTopology: Topology = topology
+
   protected val dimensionVariableNames: Seq[String]
+
+  private[agent] var rootsTable: RootsTable = _
 
   /// world geometry
   var _worldWidth: Int = _
@@ -99,6 +103,9 @@ trait DimensionManagement {
       d.maxPxcor == maxPxcor &&
       d.minPycor == minPycor &&
       d.maxPycor == maxPycor
+
+  def validPatchCoordinates(xc: Int, yc: Int): Boolean =
+    xc >= _minPxcor && xc <= _maxPxcor && yc >= _minPycor && yc <= _maxPycor
 
   @throws(classOf[WorldDimensionException])
   def growMin(min: Int, max: Int, value: Int, d: Int): Int = {

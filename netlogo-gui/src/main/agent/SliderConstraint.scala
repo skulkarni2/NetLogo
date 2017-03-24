@@ -26,8 +26,9 @@ object SliderConstraint {
 
   @throws(classOf[ConstraintExceptionHolder])
   def makeSliderConstraint(agent: Agent, minCode: String, maxCode: String, incCode: String,
+    defValue: Double, ownerName: String,
     compiler: CompilerServices,
-    defValue: Double, ownerName: String, thunkFactory: LogoThunkFactory): SliderConstraint = {
+    thunkFactory: LogoThunkFactory): SliderConstraint = {
 
     abstract class ConstraintCompiler[T] {
       def compile(code: String, spec: Spec): Either[SliderConstraintException, T]

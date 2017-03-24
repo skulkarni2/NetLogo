@@ -2,7 +2,7 @@
 
 package org.nlogo.agent
 
-import org.nlogo.core.{ AgentKind, Program, ShapeList, ShapeListTracker }
+import org.nlogo.core.{ AgentKind, Program, Shape, ShapeList, ShapeListTracker }
 
 import java.lang.{ Double => JDouble }
 
@@ -71,6 +71,13 @@ trait TurtleManagement extends WorldKernel { this: CoreWorld =>
   def removeLineThickness(agent: Agent): Unit =
     lineThicknesses.remove(agent)
 
+  // null indicates failure
+  def checkTurtleShapeName(name: String): String = {
+    val lowName = name.toLowerCase()
+    if (turtleShapeList.exists(lowName)) lowName
+    else                                 null
+  }
+
   def newTurtleId(): Long = {
     val r = _nextTurtleIndex
     _nextTurtleIndex += 1
@@ -113,16 +120,8 @@ trait TurtleManagement extends WorldKernel { this: CoreWorld =>
     }
   }
 
-  def createTurtle(breed: AgentSet): Turtle =
-    new Turtle(this, breed, Zero, Zero)
+  def createTurtle(breed: AgentSet): Turtle
 
-  // c must be in 0-13 range
-  // h can be out of range
-  def createTurtle(breed: AgentSet, c: Int, h: Int): Turtle = {
-    val baby = new Turtle(this, breed, Zero, Zero)
-    baby.colorDoubleUnchecked(JDouble.valueOf(5 + 10 * c))
-    baby.heading(h)
-    baby
-  }
+  def createTurtle(breed: AgentSet, color: Int, heading: Int): Turtle
 }
 

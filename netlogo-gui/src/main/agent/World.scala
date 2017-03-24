@@ -36,6 +36,12 @@ object World {
      */
     def update(agent: Agent, variableName: String, value: Object): Unit
   }
+
+  trait InRadiusOrCone {
+    def inRadius(agent: Agent, sourceSet: AgentSet, radius: Double, wrap: Boolean): JList[Agent]
+    def inCone(turtle: Turtle, sourceSet: AgentSet, radius: Double, angle: Double, wrap: Boolean): JList[Agent]
+
+  }
 }
 
 import World._
@@ -56,7 +62,8 @@ trait WorldKernel {
 trait CoreWorld
   extends org.nlogo.api.WorldWithWorldRenderable
   with WorldKernel
-  with DimensionManagement {
+  with DimensionManagement
+  with WatcherManagement {
 
     // anything that affects the outcome of the model should happen on the
     // main RNG
@@ -156,6 +163,15 @@ trait AgentManagement
   def getPatch(id: Int): Patch =
     _patches.getByIndex(id).asInstanceOf[Patch]
 
+  def agentKindToAgentSet(agentKind: AgentKind): AgentSet = {
+    agentKind match {
+      case AgentKind.Turtle => _turtles
+      case AgentKind.Patch => _patches
+      case AgentKind.Observer => observers
+      case AgentKind.Link => _links
+    }
+  }
+
   abstract override def clearAll(): Unit = {
     super.clearAll()
     clearPatches()
@@ -189,7 +205,8 @@ trait AgentManagement
             end1.asInstanceOf[Turtle].agentKey,
             end2.asInstanceOf[Turtle].agentKey, breed))
 
-    linkOption.getOrElse(new DummyLink(this, end1, end2, breed))
+    linkOption.getOrElse(
+      linkManager.dummyLink(end1.asInstanceOf[Turtle], end2.asInstanceOf[Turtle], breed))
   }
 
   def indexOfVariable(agent: Agent, name: String): Int = {
@@ -243,13 +260,19 @@ trait AgentManagement
 }
 
 trait World extends CoreWorld with GrossWorldState with AgentManagement {
-  def exportWorld(writer: java.io.PrintWriter, full: Boolean): Unit
+  def inRadiusOrCone: World.InRadiusOrCone
   def clearDrawing(): Unit
   def protractor: Protractor
   def diffuse(param: Double, vn: Int): Unit
   def diffuse4(param: Double, vn: Int): Unit
   def stamp(agent: Agent, erase: Boolean): Unit
   def changeTopology(xWrapping: Boolean, yWrapping: Boolean): Unit
+  def exportWorld(writer: java.io.PrintWriter, full: Boolean): Unit
+  @throws(classOf[java.io.IOException])
+  def importWorld(errorHandler: ImporterErrorHandler, importerUser: ImporterUser,
+    stringReader: org.nlogo.agent.Importer.StringReader,
+    reader: java.io.BufferedReader): Unit
+  def notifyWatchers(agent: Agent, vn: Int, value: Object): Unit
 }
 
 // A note on wrapping: normally whether x and y coordinates wrap is a
@@ -270,25 +293,12 @@ class World2D extends World with CompilationManagement {
       })
   val tieManager: TieManager = new TieManager(this, linkManager)
 
-  val inRadiusOrCone: InRadiusOrCone = new InRadiusOrCone(this)
-
   protected val dimensionVariableNames =
     Seq("MIN-PXCOR", "MAX-PXCOR", "MIN-PYCOR", "MAX-PYCOR", "WORLD-WIDTH", "WORLD-HEIGHT")
 
-  // Variable watching *must* be done on variable name, not number. Numbers
-  // can change in the middle of runs if, for instance, the user rearranges
-  // the order of declarations in turtles-own and then keeps running.
-  //
-  // I didn't use SimpleChangeEvent here since I wanted the observers to know
-  // what the change actually was.
-  // -- BCH (4/1/2014)
-  private var variableWatchers: JMap[String, JList[VariableWatcher]] =
-    new JHashMap[String, JList[VariableWatcher]]()
-  // this boolean is micro-optimization to make notifying watchers as fast as possible
-  private var hasWatchers: Boolean = false
+  val inRadiusOrCone: InRadiusOrCone = new InRadiusOrCone(this)
 
   /// observer/turtles/patches
-
   changeTopology(true, true)
 
   // create patches in the constructor, it's necessary in case
@@ -302,9 +312,6 @@ class World2D extends World with CompilationManagement {
 
   protected def createObserver(): Observer =
     new Observer(this)
-
-  /// get/set methods for World Topology
-  private[agent] def getTopology: Topology = topology
 
   def changeTopology(xWrapping: Boolean, yWrapping: Boolean): Unit = {
     topology = Topology.getTopology(this, xWrapping, yWrapping)
@@ -326,10 +333,6 @@ class World2D extends World with CompilationManagement {
                           stringReader: ImporterStringReader, reader: java.io.BufferedReader): Unit =
     new Importer(errorHandler, this, importerUser, stringReader).importWorld(reader)
 
-
-
-  /// line thickness
-
   /// equality
 
   private[nlogo] def drawLine(x0: Double, y0: Double, x1: Double, y1: Double, color: Object, size: Double, mode: String): Unit = {
@@ -346,16 +349,6 @@ class World2D extends World with CompilationManagement {
   def diffuse4(param: Double, vn: Int): Unit =
     topology.diffuse4(param, vn)
 
-
-  def agentKindToAgentSet(agentKind: AgentKind): AgentSet = {
-    agentKind match {
-      case AgentKind.Turtle => _turtles
-      case AgentKind.Patch => _patches
-      case AgentKind.Observer => observers
-      case AgentKind.Link => _links
-    }
-  }
-
   def getDimensions: WorldDimensions =
     new WorldDimensions(_minPxcor, _maxPxcor, _minPycor, _maxPycor, patchSize, wrappingAllowedInX, wrappingAllowedInY)
 
@@ -369,6 +362,18 @@ class World2D extends World with CompilationManagement {
     } else {
       turtle
     }
+  }
+
+  def createTurtle(breed: AgentSet): Turtle =
+    new Turtle(this, breed, Zero, Zero)
+
+  // c must be in 0-13 range
+  // h can be out of range
+  def createTurtle(breed: AgentSet, c: Int, h: Int): Turtle = {
+    val baby = new Turtle(this, breed, Zero, Zero)
+    baby.colorDoubleUnchecked(JDouble.valueOf(5 + 10 * c))
+    baby.heading(h)
+    baby
   }
 
   @throws(classOf[AgentException])
@@ -403,9 +408,6 @@ class World2D extends World with CompilationManagement {
     val patchid = ((_worldWidth * (_maxPycor - yc)) + xc - _minPxcor)
     getPatch(patchid)
   }
-
-  def validPatchCoordinates(xc: Int, yc: Int): Boolean =
-    xc >= _minPxcor && xc <= _maxPxcor && yc >= _minPycor && yc <= _maxPycor
 
   def fastGetPatchAt(xc: Int, yc: Int): Patch =
     getPatch(_worldWidth * (_maxPycor - yc) + xc - _minPxcor)
@@ -479,70 +481,5 @@ class World2D extends World with CompilationManagement {
 
   def stamp(agent: Agent, erase: Boolean): Unit = {
     trailDrawer.stamp(agent, erase)
-  }
-
-  /// breeds & shapes
-
-  // null indicates failure
-  def checkTurtleShapeName(name: String): String = {
-    val lowName = name.toLowerCase()
-    if (turtleShapeList.exists(lowName)) lowName
-    else                                 null
-  }
-
-  // null indicates failure
-  def checkLinkShapeName(name: String): String = {
-    val lowName = name.toLowerCase();
-    if (linkShapeList.exists(lowName)) lowName
-    else                               null
-  }
-
-  def getLinkShape(name: String): Shape = {
-    linkShapeList.shape(name)
-  }
-
-  /**
-   * A watcher to be notified every time the given variable changes for any agent.
-   * @param variableName The variable name to watch as an upper case string; e.g. "XCOR"
-   * @param watcher The watcher to notify when the variable changes
-   */
-  def addWatcher(variableName: String, watcher: VariableWatcher): Unit = {
-    if (! variableWatchers.containsKey(variableName)) {
-      variableWatchers.put(variableName, new CopyOnWriteArrayList[VariableWatcher]())
-    }
-    variableWatchers.get(variableName).add(watcher)
-    hasWatchers = true
-  }
-
-  /**
-   * Deletes a variable watcher.
-   * @param variableName The watched variable name as an upper case string; e.g. "XCOR"
-   * @param watcher The watcher to delete
-   */
-  def deleteWatcher(variableName: String, watcher: VariableWatcher): Unit = {
-    if (variableWatchers.containsKey(variableName)) {
-      val watchers = variableWatchers.get(variableName)
-      watchers.remove(watcher)
-      if (watchers.isEmpty) {
-        variableWatchers.remove(variableName)
-      }
-      if (variableWatchers.isEmpty) {
-        hasWatchers = false
-      }
-    }
-  }
-
-  def notifyWatchers(agent: Agent, vn: Int, value: Object): Unit = {
-    // This needs to be crazy fast if there are no watchers. Thus, hasWatchers. -- BCH (3/31/2014)
-    if (hasWatchers) {
-      val variableName = agent.variableName(vn)
-      val watchers = variableWatchers.get(variableName)
-      if (watchers != null) {
-        val iter = watchers.iterator
-        while (iter.hasNext) {
-          iter.next().asInstanceOf[VariableWatcher].update(agent, variableName, value)
-        }
-      }
-    }
   }
 }

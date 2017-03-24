@@ -9,13 +9,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashSet;
 
-public strictfp class InRadiusOrCone {
-  private final World world;
+public strictfp final class InRadiusOrCone
+  implements World.InRadiusOrCone {
+  private final World2D world;
 
-  InRadiusOrCone(World world) {
+  InRadiusOrCone(World2D world) {
     this.world = world;
   }
 
+  @Override
   public List<Agent> inRadius(Agent agent, AgentSet sourceSet,
                               double radius, boolean wrap) {
     int worldWidth = world.worldWidth();
@@ -127,6 +129,7 @@ public strictfp class InRadiusOrCone {
     return result;
   }
 
+  @Override
   public List<Agent> inCone(Turtle startTurtle, AgentSet sourceSet,
                             double radius, double angle, boolean wrap) {
     int worldWidth = world.worldWidth();

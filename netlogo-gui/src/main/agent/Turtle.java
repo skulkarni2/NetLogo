@@ -75,11 +75,11 @@ public strictfp class Turtle
     variables[VAR_PENMODE] = PEN_UP;
   }
 
-  public Turtle(CoreWorld world, AgentSet breed, Double xcor, Double ycor) {
+  public Turtle(World world, AgentSet breed, Double xcor, Double ycor) {
     this(world, breed, xcor, ycor, true);
   }
 
-  private Turtle(CoreWorld world, AgentSet breed, Double xcor, Double ycor, boolean getId) {
+  private Turtle(World world, AgentSet breed, Double xcor, Double ycor, boolean getId) {
     super(world);
     variables = new Object[world.getVariablesArraySize(this, breed)];
     if (getId) {
@@ -100,7 +100,7 @@ public strictfp class Turtle
   // creates a turtle that has id id, breed turtle, and is in the turtles agentset in
   // the idth slot in the agents array, if the slot was empty.  it is up to the caller to make sure
   // that the slot is open.  --mas 12/18/01
-  Turtle(CoreWorld world, long id) {
+  Turtle(World world, long id) {
     this(world, world.turtles(), World.Zero(), World.Zero(), false);
     id(id);
     world.turtles().add(this);

@@ -8,9 +8,13 @@ import org.nlogo.core.I18N;
 
 final strictfp class Box
     extends Topology {
-  Box(World world) {
+
+  Box(World2D world) {
     super(world);
+    world2d = world;
   }
+
+  final World2D world2d;
 
   //wrapping coordinates
 
@@ -66,7 +70,7 @@ final strictfp class Box
         (xc < world.minPxcor() - 0.5)) {
       return null;
     }
-    return world.getPatchAt(xc, yc);
+    return world2d.getPatchAt(xc, yc);
   }
 
   @Override
@@ -182,7 +186,7 @@ final strictfp class Box
     for (y = 0; y < yy; y++) {
       for (x = 0; x < xx; x++) {
         if (scratch2[x][y] != scratch[x][y]) {
-          world.getPatchAtWrap(x + minx, y + miny)
+          world2d.getPatchAtWrap(x + minx, y + miny)
               .setPatchVariable(vn, Double.valueOf(scratch2[x][y]));
         }
       }
@@ -277,7 +281,7 @@ final strictfp class Box
     for (y = 0; y < yy; y++) {
       for (x = 0; x < xx; x++) {
         if (scratch2[x][y] != scratch[x][y]) {
-          world.getPatchAtWrap(x + minx, y + miny)
+          world2d.getPatchAtWrap(x + minx, y + miny)
               .setPatchVariable(vn, Double.valueOf(scratch2[x][y]));
         }
       }

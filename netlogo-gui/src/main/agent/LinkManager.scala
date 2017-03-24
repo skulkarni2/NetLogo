@@ -75,6 +75,7 @@ trait LinkManager {
   def inLinks(target: Turtle, linkBreed: AgentSet): Array[Link]
   def links(target: Turtle, linkSet: AgentSet): Array[Link]
 
+  def dummyLink(end1: Turtle, end2: Turtle, breed: AgentSet): DummyLink
 }
 
 //
@@ -97,7 +98,7 @@ trait LinkManager {
 //
 
 
-class LinkManagerImpl[W <: CoreWorld](world: W, linkFactory: LinkFactory[W]) extends LinkManager {
+class LinkManagerImpl[W <: World](world: W, linkFactory: LinkFactory[W]) extends LinkManager {
 
   private var unbreededLinkCount = 0
 
@@ -194,5 +195,9 @@ class LinkManagerImpl[W <: CoreWorld](world: W, linkFactory: LinkFactory[W]) ext
       i += 1
     }
     if ((linkBreed eq world.links) && (world.linkBreeds.size > 1)) result.distinct else result
+  }
+
+  def dummyLink(end1: Turtle, end2: Turtle, breed: AgentSet): DummyLink = {
+    new DummyLink(world, end1, end2, breed)
   }
 }
