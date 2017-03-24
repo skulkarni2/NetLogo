@@ -2,7 +2,7 @@
 
 package org.nlogo.workspace
 
-import org.nlogo.agent.{Agent, World, World3D}
+import org.nlogo.agent.{Agent, World2D, World3D}
 import org.nlogo.nvm.PresentationCompilerInterface
 import org.nlogo.core.AgentKind
 import org.nlogo.api.{AggregateManagerInterface, Version}
@@ -13,7 +13,7 @@ import org.nlogo.api.{AggregateManagerInterface, Version}
 
 class DummyAbstractWorkspace
 extends AbstractWorkspaceScala(
-    if(Version.is3D) new World3D else new World,
+    if(Version.is3D) new World3D else new World2D,
     null) // no hubNetManagerFactory
 {
   dispose() // don't leak a JobThread - ST 5/2/13

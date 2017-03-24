@@ -5,6 +5,7 @@ package org.nlogo.agent;
 import org.nlogo.core.AgentKindJ;
 import org.nlogo.core.AgentKind;
 import org.nlogo.core.AgentKindJ;
+import org.nlogo.core.Breed;
 import org.nlogo.core.I18N;
 import org.nlogo.core.LogoList;
 import org.nlogo.core.Program;
@@ -81,7 +82,7 @@ public strictfp class Link
     colorDoubleUnchecked(DEFAULT_COLOR);
   }
 
-  Link(CoreWorld world, Turtle end1, Turtle end2, AgentSet breed) {
+  Link(World world, Turtle end1, Turtle end2, AgentSet breed) {
     super(world);
     variables = new Object[world.getVariablesArraySize(this, breed)];
     variables[VAR_COLOR] = Color.BoxedBlack();
@@ -155,7 +156,7 @@ public strictfp class Link
     if (compiling) {
       for (int i = NUMBER_PREDEFINED_VARS; i < linksOwnSize; i++) {
         String name = world.linksOwnNameAt(i);
-        int oldpos = world.oldLinksOwnIndexOf(name);
+        int oldpos = oldProgram.linksOwn().indexOf(name);
         if (oldpos == -1) {
           variables[i] = World.Zero();
         } else {
@@ -168,7 +169,7 @@ public strictfp class Link
     // stage 3: handle the BREED-own variables
     for (int i = linksOwnSize; i < variables.length; i++) {
       String name = world.linkBreedsOwnNameAt(getBreed(), i);
-      int oldpos = compiling ? world.oldLinkBreedsOwnIndexOf(getBreed(), name)
+      int oldpos = compiling ? oldBreedsOwnIndexOf(oldProgram, getBreed(), name)
           : world.linkBreedsOwnIndexOf(oldBreed, name);
       if (oldpos == -1) {
         variables[i] = World.Zero();
@@ -178,6 +179,22 @@ public strictfp class Link
       }
     }
     return null;
+  }
+
+
+  /**
+   * used by Link.realloc()
+   */
+  private int oldBreedsOwnIndexOf(Program oldProgram, AgentSet breed, String name) {
+    scala.Option<Breed> found = oldProgram.linkBreeds().get(breed.printName());
+    if (found.isEmpty()) {
+      return -1;
+    }
+    int result = found.get().owns().indexOf(name);
+    if (result == -1) {
+      return -1;
+    }
+    return oldProgram.linksOwn().size() + result;
   }
 
   @Override

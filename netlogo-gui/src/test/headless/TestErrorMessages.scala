@@ -50,7 +50,7 @@ class TestErrorMessages extends FunSuite with AbstractTestLanguage with BeforeAn
     val ex = intercept[CompilerException] {
       compiler.compileProgram(
         "breed [hunters hunter] hunters-own [fear] hunters-own [loathing]",
-        workspace.world.newProgram(Seq[String]()),
+        workspace.world.asInstanceOf[org.nlogo.agent.CompilationManagement].newProgram(Seq[String]()),
         workspace.getExtensionManager, workspace.getCompilationEnvironment)
     }
     assertResult("Redeclaration of HUNTERS-OWN")(ex.getMessage)

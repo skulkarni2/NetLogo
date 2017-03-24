@@ -50,6 +50,7 @@ with ControlSet {
 
   protected val world = if(Version.is3D) new World3D() else new World2D()
   val workspace = new LiteWorkspace(this, isApplet, world, frame, listenerManager, this)
+  world.compiler = workspace
   val procedures = new ProceduresLite(workspace, workspace)
   protected val liteEditorFactory = new DefaultEditorFactory(workspace)
 

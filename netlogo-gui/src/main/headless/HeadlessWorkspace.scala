@@ -13,7 +13,7 @@ import org.nlogo.api.{ AutoConvertable, ComponentSerialization, Version, ModelLo
   WorldDimensions3D, AggregateManagerInterface, FileIO, LogoException, ModelReader, ModelType, NetLogoLegacyDialect,
   NetLogoThreeDDialect, SimpleJobOwner, HubNetInterface, CommandRunnable, ReporterRunnable }, ModelReader.modelSuffix
 import org.nlogo.core.{ AgentKind, CompilerException, Femto, Model, UpdateMode, WorldDimensions }
-import org.nlogo.agent.{ World, World3D }
+import org.nlogo.agent.{ World, World2D, World3D }
 import org.nlogo.nvm.{ LabInterface,
                        Workspace, DefaultCompilerServices, PresentationCompilerInterface }
 import org.nlogo.workspace.{ AbstractWorkspace, AbstractWorkspaceScala, HubNetManagerFactory }
@@ -40,7 +40,7 @@ object HeadlessWorkspace {
    */
   def newInstance(subclass: Class[_ <: HeadlessWorkspace]): HeadlessWorkspace = {
     val pico = new Pico
-    pico.addComponent(if (Version.is3D) classOf[World3D] else classOf[World])
+    pico.addComponent(if (Version.is3D) classOf[World3D] else classOf[World2D])
     pico.add("org.nlogo.compile.Compiler")
     if (Version.is3D)
       pico.addScalaObject("org.nlogo.api.NetLogoThreeDDialect")

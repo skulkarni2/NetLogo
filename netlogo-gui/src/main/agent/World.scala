@@ -138,6 +138,7 @@ trait AgentManagement
   protected var breedsOwnCache: JHashMap[String, Integer] = new JHashMap[String, Integer]()
 
   def createPatches(minPx: Int, maxPx: Int, minPy: Int, maxPy: Int)
+  @throws(classOf[AgentException])
   def getPatchAt(x: Double, y: Double): Patch
   def fastGetPatchAt(xc: Int, yc: Int): Patch
   def getOrCreateTurtle(id: Long): Turtle
@@ -273,6 +274,7 @@ trait World extends CoreWorld with GrossWorldState with AgentManagement {
     stringReader: org.nlogo.agent.Importer.StringReader,
     reader: java.io.BufferedReader): Unit
   def notifyWatchers(agent: Agent, vn: Int, value: Object): Unit
+  def sprout(patch: Patch, breed: AgentSet): Turtle
 }
 
 // A note on wrapping: normally whether x and y coordinates wrap is a
@@ -481,5 +483,9 @@ class World2D extends World with CompilationManagement {
 
   def stamp(agent: Agent, erase: Boolean): Unit = {
     trailDrawer.stamp(agent, erase)
+  }
+
+  def sprout(patch: Patch, breed: AgentSet): Turtle = {
+    new Turtle2D(this, breed, patch.pxcor, patch.pycor)
   }
 }

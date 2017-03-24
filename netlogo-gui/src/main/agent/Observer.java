@@ -40,7 +40,7 @@ public strictfp class Observer
       newVarNames[i] = world.program().globals().apply(i);
     }
 
-    if (oldvars != null && world.oldProgram() != null && forRecompile) {
+    if (oldvars != null && oldProgram != null && forRecompile) {
       scala.collection.Seq<String> globals = world.program().globals();
       for (int i = 0; i < oldvars.length && i < oldVarNames.length; i++) {
         int newpos = globals.indexOf(oldVarNames[i]);

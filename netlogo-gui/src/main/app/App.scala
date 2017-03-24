@@ -398,6 +398,8 @@ class App extends
       }
     }
 
+    world.compiler = _workspace
+
     editorFactory.useExtensionManager(workspace.getExtensionManager)
 
     pico.addComponent(new EditorColorizer(workspace))

@@ -131,7 +131,7 @@ public strictfp abstract class Turtle
   abstract Turtle makeTurtle(World world);
 
   public Turtle hatch(AgentSet breed) {
-    Turtle child = new Turtle(world);
+    Turtle child = makeTurtle(world);
     child.heading = heading;
     child.xcor = xcor;
     child.ycor = ycor;

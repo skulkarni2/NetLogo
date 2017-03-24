@@ -43,13 +43,13 @@ trait AbstractTestLanguage extends Assertions {
       import collection.JavaConverters._
       compiler.compileProgram(
         HeadlessWorkspace.TestDeclarations + source,
-        workspace.world.newProgram(Seq[String]()),
+        workspace.world.asInstanceOf[org.nlogo.agent.CompilationManagement].newProgram(Seq[String]()),
         workspace.getExtensionManager(), workspace.getCompilationEnvironment)
     }
     workspace.setProcedures(results.proceduresMap)
-    workspace.world.program(results.program)
+    workspace.world.asInstanceOf[org.nlogo.agent.CompilationManagement].program(results.program)
     workspace.init()
-    workspace.world.realloc()
+    workspace.world.asInstanceOf[org.nlogo.agent.CompilationManagement].realloc()
   }
 
   def openModel(model: Model): Unit = {

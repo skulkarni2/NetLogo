@@ -345,9 +345,7 @@ public strictfp class Patch
   ///
 
   public Turtle sprout(int c, int heading, AgentSet breed) {
-    Turtle child = new Turtle(world, breed,
-        (Double) variables[VAR_PXCOR],
-        (Double) variables[VAR_PYCOR]);
+    Turtle child = world.sprout(this, breed);
     double color = 5 + 10 * c;
     child.colorDoubleUnchecked(Double.valueOf(color));
     child.heading(heading);

@@ -97,7 +97,9 @@ class JavaFXApp extends Application {
     pico.addAdapter(new ModelConverterComponent())
 
     worldUpdates = new java.util.concurrent.LinkedBlockingQueue[org.nlogo.agent.World]()
-    workspace = new JFXGUIWorkspace(new World2D(), pico.getComponent(classOf[PresentationCompilerInterface]), worldUpdates)
+    val world = new World2D()
+    workspace = new JFXGUIWorkspace(world, pico.getComponent(classOf[PresentationCompilerInterface]), worldUpdates)
+    world.compiler = workspace
 
     pico.addComponent(workspace)
     pico.addComponent(classOf[ModelSaver])

@@ -375,4 +375,9 @@ class World3D extends World
       drawing.stamp(agent)
     }
   }
+
+  def sprout(patch: Patch, breed: AgentSet): Turtle = {
+    val p3d = patch.asInstanceOf[Patch3D]
+    new Turtle3D(this, breed, p3d.pxcor, p3d.pycor, p3d.pzcor)
+  }
 }

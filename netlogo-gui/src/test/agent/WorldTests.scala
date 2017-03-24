@@ -16,26 +16,26 @@ class WorldTests extends FunSuite with AbstractTestWorld {
   val link1 = Array(0, 1)
 
   override def makeWorld(dimensions: WorldDimensions) =
-    new World() {
+    new World2D() {
       createPatches(dimensions)
       realloc()
     }
   override def makeTurtle(world: World, cors: Array[Int]) =
-    new Turtle(world, world.turtles,
+    new Turtle2D(world, world.turtles,
                cors(0).toDouble, cors(1).toDouble)
   override def makeLink(world: World, ends: Array[Int]) =
     new Link(world, world.getTurtle(ends(0)),
              world.getTurtle(ends(1)), world.links)
 
   def makeBreededTurtle(world: World, breedName: String) =
-    new Turtle(world, world.getBreed(breedName), 0.0, 0.0)
+    new Turtle2D(world, world.getBreed(breedName), 0.0, 0.0)
 
   def makeBreededLink(world: World, breedName: String, end1: Int, end2: Int) =
     new Link(world, world.getTurtle(end1), world.getTurtle(end2),
       world.getLinkBreed(breedName))
 
   def makeWorld(dimensions: WorldDimensions, program: Program) = {
-    val w = new World() {
+    val w = new World2D() {
       createPatches(dimensions)
       realloc()
     }
@@ -45,9 +45,12 @@ class WorldTests extends FunSuite with AbstractTestWorld {
   }
 
   def changeProgram(w: World, program: Program) = {
-    w.rememberOldProgram()
-    w.program(program)
-    w.realloc()
+    w match {
+      case world: CompilationManagement =>
+        world.rememberOldProgram()
+        world.program(program)
+        world.realloc()
+    }
   }
 
   test("IteratorSkipsDeadTurtles1_2D") {
@@ -123,7 +126,7 @@ class WorldTests extends FunSuite with AbstractTestWorld {
   }
 
   test("newly initialized world has -1 ticks") {
-    val world = new World()
+    val world = new World2D()
     assert(world.ticks == -1)
   }
 

@@ -40,7 +40,7 @@ class ImporterTests extends FunSuite with OneInstancePerTest {
       }
     }
   }
-  val world = new World()
+  val world = new World2D()
   world.createPatches(-10, 10, -10, 10)
   world.realloc()
   val importer = new Importer(IGNORE_ERROR_HANDLER, world,

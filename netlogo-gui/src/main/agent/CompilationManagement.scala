@@ -160,29 +160,6 @@ trait CompilationManagement extends CoreWorld { this: AgentManagement =>
   def oldTurtlesOwnIndexOf(name: String): Int = _oldProgram.turtlesOwn.indexOf(name)
   def oldLinksOwnIndexOf(name: String): Int = _oldProgram.linksOwn.indexOf(name)
 
-  /**
-   * used by Turtle.realloc()
-   */
-  def oldBreedsOwnIndexOf(breed: AgentSet, name: String): Int = {
-    _oldProgram.breeds.get(breed.printName)
-      .map(b => b.owns.indexOf(name))
-      .filter(_ != -1)
-      .map(i => _oldProgram.turtlesOwn.size + i)
-      .getOrElse(-1)
-  }
-
-  /**
-   * used by Link.realloc()
-   */
-  def oldLinkBreedsOwnIndexOf(breed: AgentSet, name: String): Int = {
-    _oldProgram.linkBreeds.get(breed.printName)
-      .map(b => b.owns.indexOf(name))
-      .filter(_ != -1)
-      .map(i => _oldProgram.linksOwn.size + i)
-      .getOrElse(-1)
-  }
-
-
   protected def recreateAllBreeds(): Unit = {
     breeds.clear()
     createBreeds(program.breeds, breeds)

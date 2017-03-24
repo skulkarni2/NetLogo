@@ -28,7 +28,7 @@ class World3DTests extends FunSuite with AbstractTestWorld
                  cors(1).toDouble,
                  cors(2).toDouble)
   override def makeLink(world: World, ends: Array[Int]) =
-    new Link3D(world, world.getTurtle(ends(0)),
+    new Link3D(world.asInstanceOf[World3D], world.getTurtle(ends(0)),
                world.getTurtle(ends(1)), world.links)
   test("IteratorSkipsDeadTurtles1_3D") {
     testIteratorSkipsDeadTurtles1(worldSquare, turtles5)

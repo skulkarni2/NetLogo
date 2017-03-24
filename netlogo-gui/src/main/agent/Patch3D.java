@@ -187,19 +187,6 @@ public final strictfp class Patch3D
   }
 
   @Override
-  public Turtle sprout(int c, int heading, AgentSet breed) {
-    Turtle child = new Turtle3D((World3D) world, breed,
-        (Double) variables[VAR_PXCOR3D],
-        (Double) variables[VAR_PYCOR3D],
-        (Double) variables[VAR_PZCOR3D]);
-    child.colorDouble
-        (Double.valueOf
-            (5 + 10 * c));
-    child.heading(heading);
-    return child;
-  }
-
-  @Override
   public Object pcolor() {
     if (variables[VAR_PCOLOR3D] == null) {
       variables[VAR_PCOLOR3D] = Double.valueOf(pcolor);
