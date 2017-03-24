@@ -16,6 +16,7 @@ trait LinkManagement extends WorldKernel {
   def turtles: TreeAgentSet
   protected def breedsOwnCache: JHashMap[String, Integer]
 
+  val linkShapes = new ShapeListTracker(AgentKind.Link)
   val linkBreedShapes = new BreedShapes("LINKS", linkShapes)
 
   // we assign an unique ID to links, like turtles, except that
@@ -26,8 +27,6 @@ trait LinkManagement extends WorldKernel {
   private var _nextLinkIndex: Long = 0
 
   private[agent] var linkBreeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
-
-  val linkShapes = new ShapeListTracker(AgentKind.Link)
   def linkShapeList = linkShapes.shapeList
 
   def linksOwnIndexOf(name: String): Int = program.linksOwn.indexOf(name)

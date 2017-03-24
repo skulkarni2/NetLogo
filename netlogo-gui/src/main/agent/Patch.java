@@ -475,11 +475,11 @@ public strictfp class Patch
     if (label instanceof String &&
         ((String) label).length() == 0) {
       if (hasLabel()) {
-        world.addPatchLabel();
+        world.removePatchLabel();
       }
     } else {
       if (!hasLabel()) {
-        world.removePatchLabel();
+        world.addPatchLabel();
       }
     }
     variables[VAR_PLABEL] = label;

@@ -57,6 +57,7 @@ class World3D extends World
   def maxPzcorBoxed   = _maxPzcorBoxed
   def minPzcorBoxed   = _minPzcorBoxed
 
+  topology = new Torus3D(this)
 
   override protected def createObserver(): Observer = new Observer3D(this)
 

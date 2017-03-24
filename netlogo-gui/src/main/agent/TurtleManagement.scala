@@ -18,6 +18,7 @@ trait TurtleManagement extends WorldKernel { this: CoreWorld =>
   def createTurtle(breed: AgentSet): Turtle
   def createTurtle(breed: AgentSet, color: Int, heading: Int): Turtle
 
+  val turtleShapes = new ShapeListTracker(AgentKind.Turtle)
   val turtleBreedShapes = new BreedShapes("TURTLES", turtleShapes)
 
   private var _nextTurtleIndex: Long = 0
@@ -29,7 +30,6 @@ trait TurtleManagement extends WorldKernel { this: CoreWorld =>
 
   protected val lineThicknesses: JMap[Agent, JDouble] = new JHashMap[Agent, JDouble]()
 
-  val turtleShapes = new ShapeListTracker(AgentKind.Turtle)
   def turtleShapeList: ShapeList = turtleShapes.shapeList
 
   def turtlesOwnNameAt(index: Int): String = program.turtlesOwn(index)
