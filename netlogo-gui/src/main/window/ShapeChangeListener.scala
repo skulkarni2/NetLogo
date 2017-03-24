@@ -2,10 +2,10 @@
 
 package org.nlogo.window
 
-import org.nlogo.agent.World
+import org.nlogo.agent.{ AgentManagement, CoreWorld }
 import org.nlogo.core.{ ShapeEvent, ShapeAdded, ShapeRemoved, AllShapesReplaced }
 
-class ShapeChangeListener(workspace: GUIWorkspace, world: World) {
+class ShapeChangeListener(workspace: GUIWorkspace, world: CoreWorld with AgentManagement) {
   private val turtleShapeTracker = world.turtleShapes
   private val linkShapeTracker = world.linkShapes
   private val turtleListener = new turtleShapeTracker.Sub {

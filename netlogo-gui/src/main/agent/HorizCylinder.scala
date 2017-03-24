@@ -6,7 +6,7 @@ import org.nlogo.core.AgentKind
 import org.nlogo.api.AgentException
 
 //world wraps along y-axis but not x-axis
-class HorizCylinder(world: World) extends Topology(world) {
+class HorizCylinder(world: World2D) extends Topology(world) {
   import Topology.wrap
 
   @throws(classOf[AgentException])

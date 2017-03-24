@@ -66,6 +66,9 @@ trait CoreWorld
     // should happen on the auxillary rng. JobOwners should know which RNG they use.
     val auxRNG: MersenneTwisterFast = new MersenneTwisterFast()
 
+    /// random seed generator
+    def generateSeed = RandomSeedGenerator.generateSeed()
+
     val tieManager: TieManager
 
     val tickCounter: TickCounter = new TickCounter()
@@ -103,209 +106,6 @@ trait CoreWorld
     def allStoredValues: scala.collection.Iterator[Object] = AllStoredValues.apply(this)
 }
 
-trait TurtleManagement extends WorldKernel { this: CoreWorld =>
-  def program: Program
-  protected def breedsOwnCache: JHashMap[String, Integer]
-
-  private var _nextTurtleIndex: Long = 0
-
-  protected var _turtles: TreeAgentSet = null
-  def turtles: TreeAgentSet = _turtles
-
-  private[agent] var breeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
-
-  protected val lineThicknesses: JMap[Agent, JDouble] = new JHashMap[Agent, JDouble]()
-
-  val turtleShapes = new ShapeListTracker(AgentKind.Turtle)
-  def turtleShapeList: ShapeList = turtleShapes.shapeList
-
-  def turtlesOwnNameAt(index: Int): String = program.turtlesOwn(index)
-  def turtlesOwnIndexOf(name: String): Int = program.turtlesOwn.indexOf(name)
-
-  def getBreeds:      JMap[String, _ <: org.nlogo.agent.AgentSet] = breeds
-  def getAgentBreeds: JMap[String, AgentSet] = breeds
-  def getBreed(breedName: String): AgentSet = breeds.get(breedName)
-  def isBreed(breed: AgentSet): Boolean =
-    program.breeds.isDefinedAt(breed.printName)
-  def breedOwns(breed: AgentSet, name: String): Boolean =
-    breed != turtles && breedsOwnIndexOf(breed, name) != -1
-  def breedsOwnNameAt(breed: org.nlogo.api.AgentSet, index: Int): String =
-    program.breeds(breed.printName).owns(index - program.turtlesOwn.size)
-  def breedsOwnIndexOf(breed: AgentSet, name: String): Int =
-    breedsOwnCache.getOrDefault(breed.printName + "~" + name, NegativeOneInt).intValue
-  def getBreedSingular(breed: AgentSet): String =
-    if (breed == turtles) "TURTLE"
-    else
-      program.breeds.get(breed.printName).map(_.singular).getOrElse("TURTLE")
-
-  def getTurtle(id: Long): Turtle =
-    _turtles.getAgent(JDouble.valueOf(id)).asInstanceOf[Turtle]
-
-  def nextTurtleIndex(nextTurtleIndex: Long): Unit = {
-    _nextTurtleIndex = nextTurtleIndex
-  }
-
-  def nextTurtleIndex: Long = _nextTurtleIndex
-
-  def setLineThickness(agent: Agent, size: Double): Unit = {
-    lineThicknesses.put(agent, JDouble.valueOf(size))
-  }
-
-  def lineThickness(agent: Agent): Double = {
-    val size = lineThicknesses.get(agent)
-    if (size != null)
-      size.doubleValue()
-    else
-      0.0
-  }
-
-  def removeLineThickness(agent: Agent): Unit =
-    lineThicknesses.remove(agent)
-
-  def newTurtleId(): Long = {
-    val r = _nextTurtleIndex
-    _nextTurtleIndex += 1
-    r
-  }
-
-  abstract override def clearAll() {
-    super.clearAll()
-    clearTurtles()
-  }
-
-  def clearTurtles(): Unit = {
-    if (program.breeds.nonEmpty) {
-      var breedIterator = breeds.values.iterator
-      while (breedIterator.hasNext) {
-        breedIterator.next().asInstanceOf[TreeAgentSet].clear()
-      }
-    }
-    val iter = turtles.iterator
-    while (iter.hasNext) {
-      val turtle = iter.next().asInstanceOf[Turtle]
-      lineThicknesses.remove(turtle)
-      linkManager.cleanupTurtle(turtle)
-      turtle.id(-1)
-    }
-    turtles.clear()
-    val patchIter = patches.iterator
-    while (patchIter.hasNext) {
-      patchIter.next().asInstanceOf[Patch].clearTurtles()
-    }
-    _nextTurtleIndex = 0
-  }
-
-  def getVariablesArraySize(turtle: org.nlogo.api.Turtle, breed: org.nlogo.api.AgentSet): Int = {
-    if (breed == _turtles) {
-      program.turtlesOwn.size
-    } else {
-      val breedOwns = program.breeds(breed.printName).owns
-      program.turtlesOwn.size + breedOwns.size
-    }
-  }
-
-  def createTurtle(breed: AgentSet): Turtle =
-    new Turtle(this, breed, Zero, Zero)
-
-  // c must be in 0-13 range
-  // h can be out of range
-  def createTurtle(breed: AgentSet, c: Int, h: Int): Turtle = {
-    val baby = new Turtle(this, breed, Zero, Zero)
-    baby.colorDoubleUnchecked(JDouble.valueOf(5 + 10 * c))
-    baby.heading(h)
-    baby
-  }
-}
-
-trait LinkManagement extends WorldKernel {
-  def program: Program
-  def linkManager: LinkManager
-  def turtles: TreeAgentSet
-  protected def breedsOwnCache: JHashMap[String, Integer]
-
-  // we assign an unique ID to links, like turtles, except that
-  // it's not visible to anyone and it can't affect the outcome of
-  // the model. I added it because it greatly complicates hubnet
-  // view mirroring to have the only unique identifier be a
-  // 3 element list. ev 5/1/08
-  private var _nextLinkIndex: Long = 0
-
-  private[agent] var linkBreeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
-
-  val linkShapes = new ShapeListTracker(AgentKind.Link)
-  def linkShapeList = linkShapes.shapeList
-
-  def linksOwnIndexOf(name: String): Int = program.linksOwn.indexOf(name)
-  def linksOwnNameAt(index: Int): String = program.linksOwn(index)
-  def getLinkBreeds:      JMap[String, _ <: org.nlogo.agent.AgentSet] = linkBreeds
-  def getLinkAgentBreeds: JMap[String, AgentSet] = linkBreeds
-  def getLinkBreed(breedName: String): AgentSet = linkBreeds.get(breedName)
-  def isLinkBreed(breed: AgentSet): Boolean =
-    program.linkBreeds.isDefinedAt(breed.printName)
-  def linkBreedOwns(breed: AgentSet, name: String): Boolean =
-    breed != links && linkBreedsOwnIndexOf(breed, name) != -1
-  def linkBreedsOwnNameAt(breed: AgentSet, index: Int): String =
-    program.linkBreeds(breed.printName).owns(index - program.linksOwn.size)
-  def linkBreedsOwnIndexOf(breed: AgentSet, name: String): Int =
-    breedsOwnCache.getOrDefault(breed.printName + "~" + name, NegativeOneInt).intValue
-  def getLinkBreedSingular(breed: AgentSet): String =
-    if (breed == links)
-      "LINK"
-    else
-      program.linkBreeds.get(breed.printName).map(_.singular).getOrElse("LINK")
-
-  def newLinkId(): Long = {
-    val r = _nextLinkIndex
-    _nextLinkIndex += 1
-    r
-  }
-
-  abstract override def clearAll() {
-    super.clearAll()
-    clearLinks()
-  }
-
-  def clearLinks(): Unit = {
-    if (program.linkBreeds.nonEmpty) {
-      val breedIterator = linkBreeds.values.iterator
-      while (breedIterator.hasNext) {
-        breedIterator.next().asInstanceOf[TreeAgentSet].clear()
-      }
-    }
-    val iter = links.iterator
-    while (iter.hasNext) {
-      iter.next().asInstanceOf[Link].id = -1
-    }
-    links.clear()
-    _nextLinkIndex = 0
-    linkManager.reset()
-  }
-
-  def getLink(end1: Object, end2: Object, breed: AgentSet): Link = {
-    linkManager.getLink(
-      turtles.getAgent(end1).asInstanceOf[Turtle],
-      turtles.getAgent(end2).asInstanceOf[Turtle], breed).orNull
-  }
-
-  def getVariablesArraySize(link: org.nlogo.api.Link, breed: org.nlogo.api.AgentSet): Int = {
-    if (breed == links) {
-      program.linksOwn.size
-    } else {
-      val breedOwns = program.linkBreeds(breed.printName).owns
-      program.linksOwn.size + breedOwns.size
-    }
-  }
-
-  def getLinkVariablesArraySize(breed: AgentSet): Int = {
-    if (breed == links) {
-      program.linksOwn.size
-    } else {
-      val breedOwns = program.linkBreeds(breed.printName).owns
-      program.linksOwn.size + breedOwns.size
-    }
-  }
-}
-
 trait AgentManagement
   extends TurtleManagement
   with LinkManagement
@@ -317,6 +117,11 @@ trait AgentManagement
   def turtles: TreeAgentSet
   def links: TreeAgentSet
 
+  // TODO: Consider whether these can become static vals
+  val noTurtles: AgentSet = AgentSet.emptyTurtleSet
+  val noPatches: AgentSet = AgentSet.emptyPatchSet
+  val noLinks:   AgentSet = AgentSet.emptyLinkSet
+
   def patchesOwnNameAt(index: Int): String = program.patchesOwn(index)
   def patchesOwnIndexOf(name: String): Int = program.patchesOwn.indexOf(name)
   def observerOwnsNameAt(index: Int): String = program.globals(index)
@@ -326,12 +131,16 @@ trait AgentManagement
   protected var breedsOwnCache: JHashMap[String, Integer] = new JHashMap[String, Integer]()
 
   def createPatches(minPx: Int, maxPx: Int, minPy: Int, maxPy: Int)
+  def getPatchAt(x: Double, y: Double): Patch
+  def fastGetPatchAt(xc: Int, yc: Int): Patch
   def getOrCreateTurtle(id: Long): Turtle
 
   /// creating & clearing
   def createPatches(dim: WorldDimensions): Unit = {
     createPatches(dim.minPxcor, dim.maxPxcor, dim.minPycor, dim.maxPycor)
   }
+
+  def getVariablesArraySize(patch: Patch): Int = program.patchesOwn.size
 
   def indexOfVariable(agentKind: AgentKind, name: String): Int = {
     if (agentKind == AgentKind.Observer)
@@ -351,6 +160,7 @@ trait AgentManagement
     super.clearAll()
     clearPatches()
     clearGlobals()
+    // Note: for mystery reasons, this used to live at the end of clearTurtles
     observer.updatePosition()
     observer.resetPerspective()
   }
@@ -405,36 +215,6 @@ trait AgentManagement
     }
   }
 
-  protected def buildBreedCaches(): Unit = {
-    breedsOwnCache = new JHashMap[String, Integer](16, 0.5f);
-
-    val breedIter = breeds.values.iterator
-    while (breedIter.hasNext) {
-      val breed = breedIter.next().asInstanceOf[AgentSet]
-      val offset = program.turtlesOwn.size
-      for {
-        b            <- program.breeds.get(breed.printName)
-        (varName, i) <- b.owns.zipWithIndex
-      } {
-        val key = breed.printName + "~" + varName
-        breedsOwnCache.put(key, new Integer(offset + i))
-      }
-    }
-
-    val linkBreedIter = linkBreeds.values.iterator
-    while (linkBreedIter.hasNext) {
-      val linkBreed = linkBreedIter.next().asInstanceOf[AgentSet]
-      val offset = program.linksOwn.size
-      for {
-        b            <- program.linkBreeds.get(linkBreed.printName)
-        (varName, i) <- b.owns.zipWithIndex
-      } {
-        val key = linkBreed.printName + "~" + varName
-        breedsOwnCache.put(key, new Integer(offset + i))
-      }
-    }
-  }
-
 
   def clearPatches(): Unit = {
     val iter = patches.iterator
@@ -455,6 +235,21 @@ trait AgentManagement
       }
     }
   }
+
+  def setUpShapes(clearOld: Boolean): Unit = {
+    turtleBreedShapes.setUpBreedShapes(clearOld, breeds)
+    linkBreedShapes.setUpBreedShapes(clearOld, linkBreeds)
+  }
+}
+
+trait World extends CoreWorld with GrossWorldState with AgentManagement {
+  def exportWorld(writer: java.io.PrintWriter, full: Boolean): Unit
+  def clearDrawing(): Unit
+  def protractor: Protractor
+  def diffuse(param: Double, vn: Int): Unit
+  def diffuse4(param: Double, vn: Int): Unit
+  def stamp(agent: Agent, erase: Boolean): Unit
+  def changeTopology(xWrapping: Boolean, yWrapping: Boolean): Unit
 }
 
 // A note on wrapping: normally whether x and y coordinates wrap is a
@@ -462,7 +257,7 @@ trait AgentManagement
 // that don't wrap regardless of what the topology is.  So that's why many
 // methods like distance() and towards() take a boolean argument "wrap";
 // it's true for the normal prims, false for the nowrap prims. - ST 5/24/06
-class World extends CoreWorld with AgentManagement with GrossWorldState {
+class World2D extends World with CompilationManagement {
 
   val protractor: Protractor = new Protractor(this)
 
@@ -479,31 +274,6 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
 
   protected val dimensionVariableNames =
     Seq("MIN-PXCOR", "MAX-PXCOR", "MIN-PYCOR", "MAX-PYCOR", "WORLD-WIDTH", "WORLD-HEIGHT")
-
-  private var _compiler: CompilerServices = null
-  private var _program: Program = newProgram
-
-  // These are used to cache old values while recompiling...
-  private var _oldProgram: Program = null
-  private var oldBreeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
-  private var oldLinkBreeds: JMap[String, AgentSet] = new JHashMap[String, AgentSet]()
-
-  // This is a flag that the engine checks in its tightest innermost loops
-  // to see if maybe it should stop running NetLogo code for a moment
-  // and do something like halt or update the display.  It doesn't
-  // particularly make sense to keep it in World, but since the check
-  // occurs in inner loops, we want to put in a place where the engine
-  // can get to it very quickly.  And since every Instruction has a
-  // World object in it, the engine can always get to World quickly.
-  //  - ST 1/10/07
-  @volatile
-  var comeUpForAir: Boolean = false  // NOPMD pmd doesn't like 'volatile'
-
-  private var _displayOn: Boolean = true
-
-
-  val linkBreedShapes = new BreedShapes("LINKS", linkShapes)
-  val turtleBreedShapes = new BreedShapes("TURTLES", turtleShapes)
 
   // Variable watching *must* be done on variable name, not number. Numbers
   // can change in the middle of runs if, for instance, the user rearranges
@@ -533,13 +303,6 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
   protected def createObserver(): Observer =
     new Observer(this)
 
-  /// empty agentsets
-
-  // TODO: Consider whether these can become static vals
-  val noTurtles: AgentSet = AgentSet.emptyTurtleSet
-  val noPatches: AgentSet = AgentSet.emptyPatchSet
-  val noLinks:   AgentSet = AgentSet.emptyLinkSet
-
   /// get/set methods for World Topology
   private[agent] def getTopology: Topology = topology
 
@@ -564,9 +327,6 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
     new Importer(errorHandler, this, importerUser, stringReader).importWorld(reader)
 
 
-  /// random seed generator
-
-  def generateSeed = RandomSeedGenerator.generateSeed()
 
   /// line thickness
 
@@ -650,21 +410,6 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
   def fastGetPatchAt(xc: Int, yc: Int): Patch =
     getPatch(_worldWidth * (_maxPycor - yc) + xc - _minPxcor)
 
-  private def createBreeds(
-      programBreeds: scala.collection.Map[String, Breed],
-      worldBreeds: JMap[String, AgentSet]): Unit = {
-
-    programBreeds.foreach {
-      case (name: String, breed: Breed) =>
-        val agentKind = if (breed.isLinkBreed) AgentKind.Link else AgentKind.Turtle
-        val agentset = new TreeAgentSet(agentKind, breed.name)
-        if (breed.isLinkBreed) {
-          agentset.setDirected(breed.isDirected)
-        }
-        worldBreeds.put(name.toUpperCase, agentset)
-    }
-  }
-
   def createPatches(minPxcor: Int, maxPxcor: Int,
     minPycor: Int, maxPycor: Int): Unit = {
 
@@ -685,11 +430,7 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
 
     rootsTable = new RootsTable(_worldWidth, _worldHeight)
 
-    breeds.clear()
-    createBreeds(_program.breeds, breeds)
-
-    linkBreeds.clear()
-    createBreeds(_program.linkBreeds, linkBreeds)
+    recreateAllBreeds()
 
     if (_turtles != null) {
       _turtles.clear() // so a SimpleChangeEvent is published
@@ -705,7 +446,7 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
     Arrays.fill(_patchColors, Color.getARGBbyPremodulatedColorNumber(0.0))
     _patchColorsDirty = true
 
-    val numVariables = _program.patchesOwn.size
+    val numVariables = program.patchesOwn.size
 
     observer.resetPerspective()
 
@@ -740,144 +481,7 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
     trailDrawer.stamp(agent, erase)
   }
 
-  // this exists to support recompiling a model without causing
-  // agent state information to be lost.  it is called after a
-  // successful recompilation.
-  def realloc(): Unit = {
-    // copy the breed agentsets from the old Program object from
-    // the previous compile to the new Program object that was
-    // created when we recompiled.  any new breeds that were created,
-    // we create new agentsets for.  (if this is a first compile, all
-    // the breeds will be created.)  any breeds that no longer exist
-    // are dropped.
-    if (_program.breeds.nonEmpty) {
-      _program.breeds.keys.foreach { breedName =>
-        val upcaseName = breedName.toUpperCase
-        val breedSet =
-          Option(oldBreeds.get(upcaseName)).getOrElse(new TreeAgentSet(AgentKind.Turtle, upcaseName))
-        breeds.put(upcaseName, breedSet)
-      }
-    } else {
-      breeds.clear()
-    }
-
-    if (_program.linkBreeds.nonEmpty) {
-      _program.linkBreeds.foreach {
-        case (_, linkBreed) =>
-          val breedName = linkBreed.name.toUpperCase
-          val directed = linkBreed.isDirected
-          val breedSet = Option(oldLinkBreeds.get(breedName)).getOrElse(new TreeAgentSet(AgentKind.Link, breedName))
-          breedSet.setDirected(directed)
-          linkBreeds.put(breedName, breedSet)
-      }
-    } else {
-      linkBreeds.clear()
-    }
-
-    val doomedAgents: JList[Agent] = new JArrayList[Agent]()
-
-    val compiling = _oldProgram != null
-
-    // call Agent.realloc() on all the turtles
-    try {
-      if (_turtles != null) {
-        val iter = _turtles.iterator
-        while (iter.hasNext) {
-          Option(iter.next().realloc(compiling)).foreach(doomedAgents.add)
-        }
-        val doomedIter = doomedAgents.iterator
-        while (doomedIter.hasNext) {
-          doomedIter.next().asInstanceOf[Turtle].die()
-        }
-        doomedAgents.clear()
-      }
-    } catch {
-      case ex: AgentException => throw new IllegalStateException(ex)
-    }
-    // call Agent.realloc() on all links
-    try {
-      if (_links != null) {
-        val iter = _links.iterator
-        while (iter.hasNext) {
-          Option(iter.next().realloc(compiling)).foreach(doomedAgents.add)
-        }
-        val doomedIter = doomedAgents.iterator
-        while (doomedIter.hasNext) {
-          doomedIter.next().asInstanceOf[Link].die()
-        }
-        doomedAgents.clear()
-      }
-    } catch {
-      case ex: AgentException => throw new IllegalStateException(ex)
-    }
-    // call Agent.realloc() on all the patches
-    try {
-      // Note: we only need to realloc() if the patch variables have changed.
-      //  ~Forrest ( 5/2/2007)
-      if (_patches != null && ((! compiling) || _program.patchesOwn != _oldProgram.patchesOwn)) {
-        val iter = _patches.iterator
-        while (iter.hasNext) {
-          iter.next().realloc(compiling)
-        }
-      }
-    } catch {
-      case ex: AgentException => throw new IllegalStateException(ex)
-    }
-    // call Agent.realloc() on the observer
-    observer.realloc(compiling)
-    // and finally...
-    setUpShapes(false)
-    buildBreedCaches()
-    _oldProgram = null
-  }
-
-  /// agent-owns
-
-  //TODO: We can remove these if we pass _oldProgram to realloc
-  def oldTurtlesOwnIndexOf(name: String): Int = _oldProgram.turtlesOwn.indexOf(name)
-  def oldLinksOwnIndexOf(name: String): Int = _oldProgram.linksOwn.indexOf(name)
-
-  /**
-   * used by Turtle.realloc()
-   */
-  def oldBreedsOwnIndexOf(breed: AgentSet, name: String): Int = {
-    _oldProgram.breeds.get(breed.printName)
-      .map(b => b.owns.indexOf(name))
-      .filter(_ != -1)
-      .map(i => _oldProgram.turtlesOwn.size + i)
-      .getOrElse(-1)
-  }
-
-  /**
-   * used by Link.realloc()
-   */
-  def oldLinkBreedsOwnIndexOf(breed: AgentSet, name: String): Int = {
-    _oldProgram.linkBreeds.get(breed.printName)
-      .map(b => b.owns.indexOf(name))
-      .filter(_ != -1)
-      .map(i => _oldProgram.linksOwn.size + i)
-      .getOrElse(-1)
-  }
-
-
   /// breeds & shapes
-
-  // assumes caller has already checked to see if the breeds are equal
-  def compareLinkBreeds(breed1: AgentSet, breed2: AgentSet): Int = {
-    val iter = linkBreeds.values.iterator
-    while (iter.hasNext) {
-      val next = iter.next()
-      if (next == breed1) {
-        return -1
-      } else {
-        return 1
-      }
-    }
-
-    throw new IllegalStateException("neither of the breeds exist, that's bad");
-  }
-
-  def getVariablesArraySize(patch: Patch): Int = _program.patchesOwn.size
 
   // null indicates failure
   def checkTurtleShapeName(name: String): String = {
@@ -896,62 +500,6 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
   def getLinkShape(name: String): Shape = {
     linkShapeList.shape(name)
   }
-
-  /// program
-
-  def program: Program = _program
-  def oldProgram: Program = _oldProgram
-
-  def program(program: Program): Unit = {
-    if (program == null) {
-      throw new IllegalArgumentException("World.program cannot be set to null")
-    }
-    _program = program
-
-    breeds.clear()
-    linkBreeds.clear()
-    createBreeds(_program.breeds, breeds)
-    createBreeds(_program.linkBreeds, linkBreeds)
-  }
-
-  def newProgram: Program = {
-    val dialect =
-      if (Version.is3D) org.nlogo.api.NetLogoThreeDDialect
-      else              org.nlogo.api.NetLogoLegacyDialect
-
-    Program.fromDialect(dialect)
-  }
-
-  def newProgram(interfaceGlobals: scala.collection.Seq[String]): Program =
-    newProgram.copy(interfaceGlobals = interfaceGlobals)
-
-  def rememberOldProgram(): Unit = {
-    _oldProgram = _program
-    oldBreeds = new JHashMap[String, AgentSet](breeds)
-    oldLinkBreeds = new JHashMap[String, AgentSet](linkBreeds)
-  }
-
-  def displayOn = _displayOn
-
-  def displayOn(displayOn: Boolean): Unit = {
-    _displayOn = displayOn
-  }
-
-  /// accessing observer variables by name;
-
-  def getObserverVariableByName(varName: String): AnyRef = {
-    val index = observer.variableIndex(varName.toUpperCase)
-    if (index >= 0)
-      observer.variables(index)
-    else
-      throw new IllegalArgumentException(s""""${varName}" not found""")
-  }
-
-  def compiler_=(compiler: CompilerServices): Unit = {
-    _compiler = compiler
-  }
-
-  def compiler: CompilerServices = _compiler
 
   /**
    * A watcher to be notified every time the given variable changes for any agent.
@@ -996,10 +544,5 @@ class World extends CoreWorld with AgentManagement with GrossWorldState {
         }
       }
     }
-  }
-
-  def setUpShapes(clearOld: Boolean): Unit = {
-    turtleBreedShapes.setUpBreedShapes(clearOld, breeds)
-    linkBreedShapes.setUpBreedShapes(clearOld, linkBreeds)
   }
 }

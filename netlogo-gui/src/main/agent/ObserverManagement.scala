@@ -24,6 +24,14 @@ trait ObserverManagement extends WorldKernel {
       throw new IllegalArgumentException(s""""${varName}" not found""")
   }
 
+  def getObserverVariableByName(varName: String): AnyRef = {
+    val index = observer.variableIndex(varName.toUpperCase)
+    if (index >= 0)
+      observer.variables(index)
+    else
+      throw new IllegalArgumentException(s""""${varName}" not found""")
+  }
+
   def wrappedObserverX(x: Double): Double = {
     try {
       topology.wrapX(x - topology.followOffsetX)

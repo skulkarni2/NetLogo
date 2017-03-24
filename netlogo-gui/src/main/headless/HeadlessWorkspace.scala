@@ -105,7 +105,7 @@ object HeadlessWorkspace {
  * HeadlessWorkspace.newInstance instead.
  */
 class HeadlessWorkspace(
-  _world: World,
+  _world: World with org.nlogo.agent.CompilationManagement,
   val compiler: PresentationCompilerInterface,
   val renderer: RendererInterface,
   val aggregateManager: AggregateManagerInterface,
@@ -193,12 +193,12 @@ with org.nlogo.api.ViewSettings {
     world.createPatches(d)
     import collection.JavaConverters._
     val results = compiler.compileProgram(
-      source, world.newProgram(Seq[String]()),
+      source, _world.newProgram(Seq[String]()),
       getExtensionManager, getCompilationEnvironment)
     procedures = results.proceduresMap
     codeBits.clear()
     init()
-    world.program(results.program)
+    _world.program(results.program)
     world.realloc()
 
     // setup some test plots.

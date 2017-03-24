@@ -67,7 +67,7 @@ class HeadlessModelOpener(ws: HeadlessWorkspace) {
     }
 
     ws.init()
-    ws.world.program(results.program)
+    ws.world.asInstanceOf[org.nlogo.agent.CompilationManagement].program(results.program)
 
     // test code is mixed with actual code here, which is a bit funny.
     if (ws.compilerTestingMode)

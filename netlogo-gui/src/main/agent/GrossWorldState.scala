@@ -59,6 +59,23 @@ trait GrossWorldState extends WorldKernel { this: CoreWorld =>
     _mayHavePartiallyTransparentObjects = false
   }
 
+  // This is a flag that the engine checks in its tightest innermost loops
+  // to see if maybe it should stop running NetLogo code for a moment
+  // and do something like halt or update the display.  It doesn't
+  // particularly make sense to keep it in World, but since the check
+  // occurs in inner loops, we want to put in a place where the engine
+  // can get to it very quickly.  And since every Instruction has a
+  // World object in it, the engine can always get to World quickly.
+  //  - ST 1/10/07
+  @volatile
+  var comeUpForAir: Boolean = false  // NOPMD pmd doesn't like 'volatile'
+
+  private var _displayOn: Boolean = true
+  def displayOn = _displayOn
+  def displayOn(displayOn: Boolean): Unit = {
+    _displayOn = displayOn
+  }
+
   // the trail drawer isn't as gross as the rest of the state and might actually be
   // *necessary* in a way that the rest of this trait isn't
   def trailDrawer(trailDrawer: TrailDrawerInterface): Unit = {

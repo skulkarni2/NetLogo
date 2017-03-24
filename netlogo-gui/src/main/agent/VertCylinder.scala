@@ -6,7 +6,7 @@ import org.nlogo.core.AgentKind
 import org.nlogo.api.AgentException
 
 //world wraps along x-axis but not y-axis
-class VertCylinder(world: World) extends Topology(world) {
+class VertCylinder(world: World2D) extends Topology(world) {
   import Topology.wrap
 
   //wrapping coordinates

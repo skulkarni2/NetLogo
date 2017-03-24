@@ -25,9 +25,10 @@ object SliderConstraint {
   }
 
   @throws(classOf[ConstraintExceptionHolder])
-  def makeSliderConstraint(agent: Agent, minCode: String, maxCode: String, incCode: String, defValue: Double,
-                           ownerName: String, thunkFactory: LogoThunkFactory): SliderConstraint = {
-    val compiler: CompilerServices = agent.world.compiler
+  def makeSliderConstraint(agent: Agent, minCode: String, maxCode: String, incCode: String,
+    compiler: CompilerServices,
+    defValue: Double, ownerName: String, thunkFactory: LogoThunkFactory): SliderConstraint = {
+
     abstract class ConstraintCompiler[T] {
       def compile(code: String, spec: Spec): Either[SliderConstraintException, T]
       def makeConstraint(minT: T, maxT: T, incT: T): SliderConstraint

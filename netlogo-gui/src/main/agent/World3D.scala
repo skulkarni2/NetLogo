@@ -12,10 +12,9 @@ import java.util.Arrays
 
 import World._
 
-class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement with GrossWorldState {
+class World3D extends World with org.nlogo.api.World3D with CompilationManagement {
 
   private var _program: Program = newProgram
-  def program: Program = _program
 
   val drawing: Drawing3D = new Drawing3D(this)
 
@@ -77,6 +76,11 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
 
   def followOffsetZ: Double =
     observer.asInstanceOf[Observer3D].followOffsetZ();
+
+  @throws(classOf[AgentException])
+  @throws(classOf[PatchException])
+  def diffuse(param: Double, vn: Int): Unit =
+    topology.diffuse(param, vn)
 
   def diffuse4(param: Double, vn: Int): Unit = {
     throw new UnsupportedOperationException();
@@ -150,10 +154,10 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
                             minPycor: Int, maxPycor: Int): Unit =
     createPatches(minPxcor, maxPxcor, minPycor, maxPycor, 0, 0)
 
-  def newProgram: Program =
+  override def newProgram: Program =
     Program.fromDialect(NetLogoThreeDDialect)
 
-  def newProgram(interfaceGlobals: Seq[String]): Program =
+  override def newProgram(interfaceGlobals: Seq[String]): Program =
     newProgram.copy(interfaceGlobals = interfaceGlobals)
 
   def createPatches(

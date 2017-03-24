@@ -8,7 +8,7 @@ import javafx.scene.{ Group, Scene }
 import javafx.stage.Stage
 
 import org.nlogo.api._
-import org.nlogo.agent.World
+import org.nlogo.agent.{ World, World2D }
 import org.nlogo.core.{ AgentKind, CompilerException, Dialect, I18N, LogoList, Model, Nobody,
   Shape, Token, Widget => CoreWidget }, Shape.{ LinkShape, VectorShape }
 import org.nlogo.fileformat, fileformat.{ ModelConversion, ModelConverter, NLogoFormat }
@@ -97,7 +97,7 @@ class JavaFXApp extends Application {
     pico.addAdapter(new ModelConverterComponent())
 
     worldUpdates = new java.util.concurrent.LinkedBlockingQueue[org.nlogo.agent.World]()
-    workspace = new JFXGUIWorkspace(new World(), pico.getComponent(classOf[PresentationCompilerInterface]), worldUpdates)
+    workspace = new JFXGUIWorkspace(new World2D(), pico.getComponent(classOf[PresentationCompilerInterface]), worldUpdates)
 
     pico.addComponent(workspace)
     pico.addComponent(classOf[ModelSaver])
