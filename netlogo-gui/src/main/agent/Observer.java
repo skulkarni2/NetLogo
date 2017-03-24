@@ -4,6 +4,7 @@ package org.nlogo.agent;
 
 import org.nlogo.core.AgentKind;
 import org.nlogo.core.AgentKindJ;
+import org.nlogo.core.Program;
 import org.nlogo.api.AgentException;
 import org.nlogo.api.AgentFollowingPerspective;
 import org.nlogo.api.LogoException;
@@ -26,7 +27,8 @@ public strictfp class Observer
   public AgentKind kind() { return AgentKindJ.Observer(); }
 
   @Override
-  Agent realloc(boolean forRecompile) {
+  Agent realloc(Program oldProgram, Program program) {
+    boolean forRecompile = oldProgram != null;
     Object[] oldvars = variables;
     String[] oldVarNames = varNames;
     Object[] newvars = new Object[world.getVariablesArraySize(this)];

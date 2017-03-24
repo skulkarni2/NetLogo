@@ -5,6 +5,7 @@ package org.nlogo.agent;
 import org.nlogo.core.AgentKind;
 import org.nlogo.core.I18N;
 import org.nlogo.core.LogoList;
+import org.nlogo.core.Program;
 import org.nlogo.api.AgentException;
 import org.nlogo.api.Dump;
 import org.nlogo.api.LogoException;
@@ -48,7 +49,7 @@ public abstract strictfp class Agent
         : (id > otherId ? 1 : 0);
   }
 
-  abstract Agent realloc(boolean forRecompile)
+  abstract Agent realloc(Program oldProgram, Program newProgram)
       throws AgentException;
 
   public int getVariableCount() {

@@ -4,14 +4,16 @@ package org.nlogo.agent;
 
 import org.nlogo.core.AgentKind;
 import org.nlogo.core.AgentKindJ;
+import org.nlogo.core.Breed;
+import org.nlogo.core.I18N;
+import org.nlogo.core.LogoList;
+import org.nlogo.core.Program;
 import org.nlogo.api.AgentException;
 import org.nlogo.api.AgentVariableNumbers;
 import org.nlogo.api.AgentVariables;
 import org.nlogo.api.Color;
 import org.nlogo.api.Dump;
-import org.nlogo.core.I18N;
 import org.nlogo.api.LogoException;
-import org.nlogo.core.LogoList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,9 +27,10 @@ import java.util.Set;
 // methods like distance() and towards() take a boolean argument "wrap";
 // it's true for the normal prims, false for the nowrap prims. - ST 5/24/06
 
-public strictfp class Turtle
+public strictfp abstract class Turtle
     extends Agent
     implements org.nlogo.api.Turtle {
+
   void id(long id) {
     this.id = id;
     variables[VAR_WHO] = Double.valueOf(id);
@@ -79,7 +82,7 @@ public strictfp class Turtle
     this(world, breed, xcor, ycor, true);
   }
 
-  private Turtle(World world, AgentSet breed, Double xcor, Double ycor, boolean getId) {
+  protected Turtle(World world, AgentSet breed, Double xcor, Double ycor, boolean getId) {
     super(world);
     variables = new Object[world.getVariablesArraySize(this, breed)];
     if (getId) {
@@ -111,9 +114,21 @@ public strictfp class Turtle
     super(world);
   }
 
-  public Turtle hatch() {
-    return hatch(getBreed());
-  }
+  // The observant reader will notice that the abstract methods are
+  // primarily those which depend on the world arity (2D/3D).
+  public abstract Turtle hatch();
+  public abstract Patch getPatchAtOffsets(double dx, double dy) throws AgentException;
+  public abstract Patch getPatchAtHeadingAndDistance(double delta, double distance) throws AgentException;
+  public abstract void jump(double distance) throws AgentException;
+  public abstract Patch getPatchHere();
+  public abstract void moveToPatchCenter();
+  public abstract void home();
+  public abstract void face(Agent agent, boolean wrap);
+  public abstract void turnRight(double delta);
+  public abstract double dx();
+  public abstract double dy();
+  abstract void drawLine(double x0, double y0, double x1, double y1);
+  abstract Turtle makeTurtle(World world);
 
   public Turtle hatch(AgentSet breed) {
     Turtle child = new Turtle(world);
@@ -162,23 +177,14 @@ public strictfp class Turtle
 
   Patch currentPatch = null;
 
-  @Override
-  public Patch getPatchAtOffsets(double dx, double dy)
-      throws AgentException {
-    Patch target = world.getTopology().getPatchAt(xcor + dx, ycor + dy);
-    if (target == null) {
-      // Cannot get patch beyond limits of current world.
-      throw new AgentException(I18N.errorsJ().get("org.nlogo.agent.Turtle.patchBeyondLimits"));
-    }
-    return target;
-  }
 
   @Override
-  Agent realloc(boolean compiling) {
-    return realloc(compiling, null);
+  Agent realloc(Program oldProgram, Program program) {
+    return realloc(oldProgram, program, null);
   }
 
-  Agent realloc(boolean compiling, AgentSet oldBreed) {
+  Agent realloc(Program oldProgram, Program program, AgentSet oldBreed) {
+    boolean compiling = oldProgram != null;
     // first check if we recompiled and our breed disappeared!
     if (compiling && getBreed() != world.turtles() &&
         world.getBreed(getBreed().printName()) == null) {
@@ -200,7 +206,7 @@ public strictfp class Turtle
     if (compiling) {
       for (int i = NUMBER_PREDEFINED_VARS; i < turtlesOwnSize; i++) {
         String name = world.turtlesOwnNameAt(i);
-        int oldpos = world.oldTurtlesOwnIndexOf(name);
+        int oldpos = oldProgram.turtlesOwn().indexOf(name);
         if (oldpos == -1) {
           variables[i] = World.Zero();
         } else {
@@ -213,7 +219,7 @@ public strictfp class Turtle
     // stage 3: handle the BREED-own variables
     for (int i = turtlesOwnSize; i < variables.length; i++) {
       String name = world.breedsOwnNameAt(getBreed(), i);
-      int oldpos = compiling ? world.oldBreedsOwnIndexOf(getBreed(), name)
+      int oldpos = compiling ? oldBreedsOwnIndexOf(oldProgram, getBreed(), name)
           : world.breedsOwnIndexOf(oldBreed, name);
       if (oldpos == -1) {
         variables[i] = World.Zero();
@@ -226,42 +232,19 @@ public strictfp class Turtle
     return null;
   }
 
-  // note this is very similar to
-  // World.getPatchAtDistanceAndHeading() - ST 9/3/03
-  public void jump(double distance)
-      throws AgentException {
-    if (heading != cachedHeading) {
-      cachedHeading = heading;
-      int integerHeading = (int) heading;
-      if (heading == integerHeading) {
-        cachedCosine = TrigTables.cos()[integerHeading];
-        cachedSine = TrigTables.sin()[integerHeading];
-      } else {
-        double headingRadians = StrictMath.toRadians(heading);
-        cachedCosine = StrictMath.cos(headingRadians);
-        cachedSine = StrictMath.sin(headingRadians);
-      }
+  /**
+   * used by Turtle.realloc()
+   */
+  private int oldBreedsOwnIndexOf(Program oldProgram, AgentSet breed, String name) {
+    scala.Option<Breed> found = oldProgram.breeds().get(breed.printName());
+    if (found.isEmpty()) {
+      return -1;
     }
-    xandycor(xcor + (distance * cachedSine),
-        ycor + (distance * cachedCosine));
-  }
-
-  public Patch getPatchAtHeadingAndDistance(double delta, double distance)
-      throws AgentException {
-    double h = heading + delta;
-    if (h < 0 || h >= 360) {
-      h = ((h % 360) + 360) % 360;
+    int result = found.get().owns().indexOf(name);
+    if (result == -1) {
+      return -1;
     }
-    return world.protractor().getPatchAtHeadingAndDistance(this, h, distance);
-  }
-
-  public Patch getPatchHere() {
-    if (currentPatch == null) {
-      //turtles cannot leave the world, so xcor and ycor will always be valid
-      //so assume we dont have to access the Topologies
-      currentPatch = world.getPatchAtWrap(xcor, ycor);
-    }
-    return currentPatch;
+    return oldProgram.turtlesOwn().size() + result;
   }
 
   @Override
@@ -624,10 +607,6 @@ public strictfp class Turtle
     }
   }
 
-  public void turnRight(double delta) {
-    heading(heading + delta);
-  }
-
   double heading = 0;
   double cachedHeading = 0;
   double cachedSine = 0;
@@ -692,12 +671,6 @@ public strictfp class Turtle
   }
 
   ///
-
-  void drawLine(double x0, double y0, double x1, double y1) {
-    if (!penMode().equals(PEN_UP) && (x0 != x1 || y0 != y1)) {
-      world.drawLine(x0, y0, x1, y1, variables[VAR_COLOR], penSize(), penMode());
-    }
-  }
 
   public void moveTo(Agent otherAgent)
       throws AgentException {
@@ -991,40 +964,6 @@ public strictfp class Turtle
     }
   }
 
-  public void moveToPatchCenter() {
-    Patch p = getPatchHere();
-    double x = p.pxcor;
-    double y = p.pycor;
-    double oldX = this.xcor;
-    double oldY = this.ycor;
-    drawLine(oldX, oldY, x, y);
-    if (x != oldX || y != oldY) {
-      this.xcor = x;
-      this.ycor = y;
-      variables[VAR_XCOR] = p.variables[Patch.VAR_PXCOR];
-      variables[VAR_YCOR] = p.variables[Patch.VAR_PYCOR];
-      Observer observer = world.observer();
-      if (this == observer.targetAgent()) {
-        observer.updatePosition();
-      }
-      if (world.tieManager().hasTies()) {
-        world.tieManager().turtleMoved(this, x, y, oldX, oldY);
-      }
-    }
-  }
-
-  public void face(Agent agent, boolean wrap) {
-    try {
-      heading(world.protractor().towards(this, agent, wrap));
-    } catch (AgentException ex) {
-      // AgentException here means we tried to calculate the heading from
-      // an agent to itself, or to an agent at the exact same position.
-      // Since face is nice, it just ignores the exception and doesn't change
-      // the callers heading. - AZS 6/22/05
-      org.nlogo.api.Exceptions.ignore(ex);
-    }
-  }
-
   public void face(double x, double y, boolean wrap) {
     try {
       heading(world.protractor().towards(this, x, y, wrap));
@@ -1052,47 +991,6 @@ public strictfp class Turtle
     } else {
       return diff + 360;
     }
-  }
-
-  public void home() {
-    try {
-      xandycor(World.Zero(), World.Zero());
-    } catch (AgentException e) {
-      // this will never happen since we require 0,0 be inside the world.
-      throw new IllegalStateException(e);
-    }
-  }
-
-  public double dx() {
-    if (heading != cachedHeading) {
-      cachedHeading = heading;
-      int integerHeading = (int) heading;
-      if (heading == integerHeading) {
-        cachedCosine = TrigTables.cos()[integerHeading];
-        cachedSine = TrigTables.sin()[integerHeading];
-      } else {
-        double headingRadians = StrictMath.toRadians(heading);
-        cachedCosine = StrictMath.cos(headingRadians);
-        cachedSine = StrictMath.sin(headingRadians);
-      }
-    }
-    return cachedSine;
-  }
-
-  public double dy() {
-    if (heading != cachedHeading) {
-      cachedHeading = heading;
-      int integerHeading = (int) heading;
-      if (heading == integerHeading) {
-        cachedCosine = TrigTables.cos()[integerHeading];
-        cachedSine = TrigTables.sin()[integerHeading];
-      } else {
-        double headingRadians = StrictMath.toRadians(heading);
-        cachedCosine = StrictMath.cos(headingRadians);
-        cachedSine = StrictMath.sin(headingRadians);
-      }
-    }
-    return cachedCosine;
   }
 
   public String shape() {
@@ -1176,7 +1074,7 @@ public strictfp class Turtle
     }
     variables[VAR_BREED] = breed;
     shape(world.turtleBreedShapes().breedShape(breed));
-    realloc(false, oldBreed);
+    realloc(null, world.program(), oldBreed);
   }
 
   public boolean hidden() {

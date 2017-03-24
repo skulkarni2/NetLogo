@@ -100,7 +100,10 @@ public final strictfp class Turtle3D
     world.turtles().add(this);
   }
 
-  @Override
+  Turtle makeTurtle(World world) {
+    return new Turtle3D((World3D) world);
+  }
+
   public Turtle hatch() {
     Turtle3D child = new Turtle3D((World3D) world);
     child.heading = heading;
@@ -146,7 +149,6 @@ public final strictfp class Turtle3D
 
   // note this is very similar to
   // World.getPatchAtDistanceAndHeading() - ST 9/3/03
-  @Override
   public void jump(double distance) {
     double pitchRadians = StrictMath.toRadians(pitch());
     double sin = StrictMath.sin(pitchRadians);
@@ -175,7 +177,6 @@ public final strictfp class Turtle3D
 
   }
 
-  @Override
   public Patch getPatchHere() {
     if (currentPatch == null) {
       //turtles cannot leave the world, so xcor and ycor will always be valid
@@ -491,7 +492,6 @@ public final strictfp class Turtle3D
     }
   }
 
-  @Override
   void drawLine(double x0, double y0, double x1, double y1) {
     if (penMode().equals(PEN_DOWN) && (x0 != x1 || y0 != y1)) {
       ((World3D) world).drawLine
@@ -548,7 +548,6 @@ public final strictfp class Turtle3D
     xyandzcor(shortestPathX(x), shortestPathY(y), shortestPathZ(z));
   }
 
-  @Override
   public void moveToPatchCenter() {
     Patch3D p = (Patch3D) getPatchHere();
     double x = p.pxcor;
@@ -884,12 +883,10 @@ public final strictfp class Turtle3D
     }
   }
 
-  @Override
   public void home() {
     xyandzcor(World.Zero(), World.Zero(), World.Zero());
   }
 
-  @Override
   public void face(Agent agent, boolean wrap) {
     double newHeading, newPitch;
     try {
@@ -926,13 +923,11 @@ public final strictfp class Turtle3D
     headingPitchAndRoll(newHeading, newPitch, roll());
   }
 
-  @Override
   public double dx() {
     return StrictMath.cos(StrictMath.toRadians(pitch())) *
         StrictMath.sin(StrictMath.toRadians(heading()));
   }
 
-  @Override
   public double dy() {
     return StrictMath.cos(StrictMath.toRadians(pitch())) *
         StrictMath.cos(StrictMath.toRadians(heading()));
@@ -1004,10 +999,9 @@ public final strictfp class Turtle3D
     }
     variables[VAR_BREED3D] = breed;
     shape(world.turtleBreedShapes().breedShape(breed));
-    realloc(false, oldBreed);
+    realloc(null, world.program(), oldBreed);
   }
 
-  @Override
   public Patch getPatchAtHeadingAndDistance(double delta, double distance)
       throws AgentException {
     double[] angles = right(delta);
@@ -1016,7 +1010,6 @@ public final strictfp class Turtle3D
             angles[0], angles[1], distance);
   }
 
-  @Override
   public void turnRight(double delta) {
     double[] angles = right(delta);
 

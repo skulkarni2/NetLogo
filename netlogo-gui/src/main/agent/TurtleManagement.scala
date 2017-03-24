@@ -14,6 +14,10 @@ trait TurtleManagement extends WorldKernel { this: CoreWorld =>
   def program: Program
   protected def breedsOwnCache: JHashMap[String, Integer]
 
+  // Turtle creation is a responsibility of the World
+  def createTurtle(breed: AgentSet): Turtle
+  def createTurtle(breed: AgentSet, color: Int, heading: Int): Turtle
+
   val turtleBreedShapes = new BreedShapes("TURTLES", turtleShapes)
 
   private var _nextTurtleIndex: Long = 0
@@ -120,8 +124,5 @@ trait TurtleManagement extends WorldKernel { this: CoreWorld =>
     }
   }
 
-  def createTurtle(breed: AgentSet): Turtle
-
-  def createTurtle(breed: AgentSet, color: Int, heading: Int): Turtle
 }
 

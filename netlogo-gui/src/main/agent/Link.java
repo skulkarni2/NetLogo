@@ -5,14 +5,15 @@ package org.nlogo.agent;
 import org.nlogo.core.AgentKindJ;
 import org.nlogo.core.AgentKind;
 import org.nlogo.core.AgentKindJ;
+import org.nlogo.core.I18N;
+import org.nlogo.core.LogoList;
+import org.nlogo.core.Program;
 import org.nlogo.api.AgentException;
 import org.nlogo.api.AgentVariableNumbers;
 import org.nlogo.api.AgentVariables;
 import org.nlogo.api.Color;
 import org.nlogo.api.Dump;
-import org.nlogo.core.I18N;
 import org.nlogo.api.LogoException;
-import org.nlogo.core.LogoList;
 
 import java.util.Iterator;
 
@@ -127,11 +128,12 @@ public strictfp class Link
   ///
 
   @Override
-  Agent realloc(boolean compiling) {
-    return realloc(compiling, null);
+  Agent realloc(Program oldProgram, Program program) {
+    return realloc(oldProgram, program, null);
   }
 
-  Agent realloc(boolean compiling, AgentSet oldBreed) {
+  Agent realloc(Program oldProgram, Program program, AgentSet oldBreed) {
+    boolean compiling = oldProgram != null;
     // first check if we recompiled and our breed disappeared!
     if (compiling && getBreed() != world.links() &&
         world.getLinkBreed(getBreed().printName()) == null) {
@@ -642,7 +644,7 @@ public strictfp class Link
       world.linkManager().addLink(this);
     }
     shape(world.linkBreedShapes().breedShape(breed));
-    realloc(false, oldBreed);
+    realloc(null, world.program(), oldBreed);
   }
 
   // returns the index of the breed of this link, 0 means a generic link;

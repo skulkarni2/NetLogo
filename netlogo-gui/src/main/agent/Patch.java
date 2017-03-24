@@ -4,14 +4,15 @@ package org.nlogo.agent;
 
 import org.nlogo.core.AgentKind;
 import org.nlogo.core.AgentKindJ;
+import org.nlogo.core.I18N;
+import org.nlogo.core.LogoList;
+import org.nlogo.core.Program;
 import org.nlogo.api.AgentException;
 import org.nlogo.api.AgentVariableNumbers;
 import org.nlogo.api.AgentVariables;
 import org.nlogo.api.Color;
 import org.nlogo.api.Dump;
-import org.nlogo.core.I18N;
 import org.nlogo.api.LogoException;
-import org.nlogo.core.LogoList;
 
 import java.util.ArrayList;
 
@@ -103,7 +104,7 @@ public strictfp class Patch
   }
 
   @Override
-  Agent realloc(boolean forRecompile) {
+  Agent realloc(Program oldProgram, Program newProgram) {
     Object[] oldvars = variables;
     Object[] newvars = new Object[world.getVariablesArraySize(this)];
     for (int i = 0; newvars.length != i; i++) {
@@ -114,9 +115,9 @@ public strictfp class Patch
       }
     }
     // Keep Variables Across Recompile
-    if (forRecompile) {
-      for (int i = NUMBER_PREDEFINED_VARS; i < oldvars.length && i < world.oldProgram().patchesOwn().size(); i++) {
-        String name = world.oldProgram().patchesOwn().apply(i);
+    if (oldProgram != null) {
+      for (int i = NUMBER_PREDEFINED_VARS; i < oldvars.length && i < oldProgram.patchesOwn().size(); i++) {
+        String name = oldProgram.patchesOwn().apply(i);
         int newpos = world.patchesOwnIndexOf(name);
         if (newpos != -1) {
           newvars[newpos] = oldvars[i];

@@ -356,7 +356,7 @@ class World2D extends World with CompilationManagement {
   def getOrCreateTurtle(id: Long): Turtle = {
     val turtle = getTurtle(id).asInstanceOf[Turtle]
     if (turtle == null) {
-      val newTurtle = new Turtle(this, id)
+      val newTurtle = new Turtle2D(this, id)
       nextTurtleIndex(StrictMath.max(nextTurtleIndex, id + 1))
       newTurtle
     } else {
@@ -365,12 +365,12 @@ class World2D extends World with CompilationManagement {
   }
 
   def createTurtle(breed: AgentSet): Turtle =
-    new Turtle(this, breed, Zero, Zero)
+    new Turtle2D(this, breed, Zero, Zero)
 
   // c must be in 0-13 range
   // h can be out of range
   def createTurtle(breed: AgentSet, c: Int, h: Int): Turtle = {
-    val baby = new Turtle(this, breed, Zero, Zero)
+    val baby = new Turtle2D(this, breed, Zero, Zero)
     baby.colorDoubleUnchecked(JDouble.valueOf(5 + 10 * c))
     baby.heading(h)
     baby

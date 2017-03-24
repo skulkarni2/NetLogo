@@ -108,7 +108,7 @@ trait CompilationManagement extends CoreWorld { this: AgentManagement =>
       if (turtles != null) {
         val iter = turtles.iterator
         while (iter.hasNext) {
-          Option(iter.next().realloc(compiling)).foreach(doomedAgents.add)
+          Option(iter.next().realloc(oldProgram, program)).foreach(doomedAgents.add)
         }
         val doomedIter = doomedAgents.iterator
         while (doomedIter.hasNext) {
@@ -124,7 +124,7 @@ trait CompilationManagement extends CoreWorld { this: AgentManagement =>
       if (links != null) {
         val iter = links.iterator
         while (iter.hasNext) {
-          Option(iter.next().realloc(compiling)).foreach(doomedAgents.add)
+          Option(iter.next().realloc(oldProgram, program)).foreach(doomedAgents.add)
         }
         val doomedIter = doomedAgents.iterator
         while (doomedIter.hasNext) {
@@ -142,14 +142,14 @@ trait CompilationManagement extends CoreWorld { this: AgentManagement =>
       if (_patches != null && ((! compiling) || _program.patchesOwn != _oldProgram.patchesOwn)) {
         val iter = _patches.iterator
         while (iter.hasNext) {
-          iter.next().realloc(compiling)
+          iter.next().realloc(oldProgram, program)
         }
       }
     } catch {
       case ex: AgentException => throw new IllegalStateException(ex)
     }
     // call Agent.realloc() on the observer
-    observer.realloc(compiling)
+    observer.realloc(oldProgram, program)
     // and finally...
     setUpShapes(false)
     buildBreedCaches()
