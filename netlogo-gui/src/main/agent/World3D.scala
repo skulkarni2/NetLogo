@@ -14,6 +14,9 @@ import World._
 
 class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement with GrossWorldState {
 
+  private var _program: Program = newProgram
+  def program: Program = _program
+
   val drawing: Drawing3D = new Drawing3D(this)
 
   override val protractor: Protractor3D = new Protractor3D(this)
@@ -29,11 +32,11 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
     })
 
   override val tieManager = new TieManager3D(this, linkManager)
-  override val inRadiusOrCone = new InRadiusOrCone3D(this)
+  val inRadiusOrCone = new InRadiusOrCone3D(this)
 
   _mayHavePartiallyTransparentObjects = false;
 
-  override protected val dimensionVariableNames =
+  protected val dimensionVariableNames =
     Seq("MIN-PXCOR", "MAX-PXCOR", "MIN-PYCOR", "MAX-PYCOR", "MIN-PZCOR", "MAX-PZCOR", "WORLD-WIDTH", "WORLD-HEIGHT", "WORLD-DEPTH")
 
   var _worldDepth: Int = _
@@ -55,7 +58,7 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
 
   override protected def createObserver(): Observer = new Observer3D(this)
 
-  override def changeTopology(xWrapping: Boolean, yWrapping: Boolean): Unit = {
+  def changeTopology(xWrapping: Boolean, yWrapping: Boolean): Unit = {
     topology = new Torus3D(this)
   }
 
@@ -75,7 +78,7 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
   def followOffsetZ: Double =
     observer.asInstanceOf[Observer3D].followOffsetZ();
 
-  override def diffuse4(param: Double, vn: Int): Unit = {
+  def diffuse4(param: Double, vn: Int): Unit = {
     throw new UnsupportedOperationException();
   }
 
@@ -147,10 +150,10 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
                             minPycor: Int, maxPycor: Int): Unit =
     createPatches(minPxcor, maxPxcor, minPycor, maxPycor, 0, 0)
 
-  override def newProgram: Program =
+  def newProgram: Program =
     Program.fromDialect(NetLogoThreeDDialect)
 
-  override def newProgram(interfaceGlobals: Seq[String]): Program =
+  def newProgram(interfaceGlobals: Seq[String]): Program =
     newProgram.copy(interfaceGlobals = interfaceGlobals)
 
   def createPatches(
@@ -236,19 +239,19 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
 
   /// export world
 
-  override def exportWorld(writer: java.io.PrintWriter, full: Boolean): Unit = {
+  def exportWorld(writer: java.io.PrintWriter, full: Boolean): Unit = {
     new Exporter3D(this, writer).exportWorld(full)
   }
 
   @throws(classOf[java.io.IOException])
-  override def importWorld(errorHandler: org.nlogo.agent.Importer.ErrorHandler,
+  def importWorld(errorHandler: org.nlogo.agent.Importer.ErrorHandler,
     importerUser: ImporterUser,
     stringReader: org.nlogo.agent.Importer.StringReader,
     reader: java.io.BufferedReader): Unit =
     new Importer3D(errorHandler, this, importerUser, stringReader).importWorld(reader)
 
   // used by Importer and Parser
-  override def getOrCreateTurtle(id: Long): Turtle = {
+  def getOrCreateTurtle(id: Long): Turtle = {
     val turtle = getTurtle(id)
     if (turtle == null) {
       new Turtle3D(this, id)
@@ -337,8 +340,7 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
   // 3D drawing is vector based. ev 5/30/06
   override def sendPixels: Boolean = false
 
-  @Override
-  override private[nlogo] def drawLine(
+  private[nlogo] def drawLine(
     x0: Double, y0: Double,
     x1: Double, y1: Double,
     color: AnyRef, size: Double, mode: String) {
@@ -357,11 +359,11 @@ class World3D extends CoreWorld with org.nlogo.api.World3D with AgentManagement 
     drawing.clear()
   }
 
-  override def clearDrawing(): Unit = {
+  def clearDrawing(): Unit = {
     drawing.clear()
   }
 
-  override def stamp(agent: Agent, erase: Boolean): Unit = {
+  def stamp(agent: Agent, erase: Boolean): Unit = {
     if (!erase) {
       drawing.stamp(agent)
     }

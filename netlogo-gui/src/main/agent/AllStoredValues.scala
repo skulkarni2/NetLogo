@@ -13,7 +13,7 @@ import org.nlogo.core.LogoList
 import collection.JavaConverters._
 
 object AllStoredValues {
-  def apply(world: World): Iterator[AnyRef] = {
+  def apply(world: CoreWorld): Iterator[AnyRef] = {
     val agents: Iterator[org.nlogo.api.Agent] =
       world.observers.agents.iterator.asScala ++
       world.turtles.agents.iterator.asScala ++
