@@ -164,6 +164,9 @@ class World3D extends World
   override def newProgram(interfaceGlobals: Seq[String]): Program =
     newProgram.copy(interfaceGlobals = interfaceGlobals)
 
+  // 3D world copying isn't yet supported
+  def copy(): World = null
+
   def createPatches(
     minPxcor: Int, maxPxcor: Int,
     minPycor: Int, maxPycor: Int,

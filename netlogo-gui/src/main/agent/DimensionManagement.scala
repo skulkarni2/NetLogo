@@ -184,4 +184,21 @@ trait DimensionManagement {
 
   def wrap(pos: Double, min: Double, max: Double): Double =
     Topology.wrap(pos, min, max)
+
+  def copyDimensions(other: DimensionManagement): Unit = {
+    other.rootsTable = rootsTable
+    other._worldWidth = _worldWidth
+    other._worldHeight = _worldHeight
+    other._minPxcor = _minPxcor
+    other._minPycor = _minPycor
+    other._maxPycor = _maxPycor
+    other._maxPxcor = _maxPxcor
+    other._patchSize = _patchSize
+    other._worldWidthBoxed = _worldWidthBoxed
+    other._worldHeightBoxed = _worldHeightBoxed
+    other._minPxcorBoxed = _minPxcorBoxed
+    other._minPycorBoxed = _minPycorBoxed
+    other._maxPxcorBoxed = _maxPxcorBoxed
+    other._maxPycorBoxed = _maxPycorBoxed
+  }
 }

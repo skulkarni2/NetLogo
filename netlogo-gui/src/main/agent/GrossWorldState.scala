@@ -87,4 +87,15 @@ trait GrossWorldState extends WorldKernel { this: CoreWorld =>
   }
   def getDrawing: AnyRef = _trailDrawer.getDrawing
   def sendPixels: Boolean = _trailDrawer.sendPixels
+
+  def copyGrossState(other: GrossWorldState): Unit = {
+    other._patchColors = _patchColors
+    other._trailDrawer = _trailDrawer
+    other._displayOn = _displayOn
+    other._mayHavePartiallyTransparentObjects = _mayHavePartiallyTransparentObjects
+    other._patchScratch = _patchScratch
+    other._patchesWithLabels = _patchesWithLabels
+    other._patchesAllBlack = _patchesAllBlack
+    other._patchColorsDirty = _patchColorsDirty
+  }
 }

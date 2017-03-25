@@ -47,7 +47,6 @@ object World {
 import World._
 
 trait WorldKernel {
-  def clearAll(): Unit = {}
   def program: Program
   def observer: Observer
   def observers: AgentSet
@@ -57,6 +56,7 @@ trait WorldKernel {
   private[agent] def topology: Topology
   private[agent] def breeds: JMap[String, AgentSet]
   private[agent] def linkBreeds: JMap[String, AgentSet]
+  def clearAll(): Unit = {}
 }
 
 trait CoreWorld
@@ -90,7 +90,7 @@ trait CoreWorld
     // This is also true in 3D (with the x-coordinate corresponding to a stride
     // of 1, the y-coordinate with a stride of world-width, and the z-coordinate
     // with a stride of world-width * world-height)
-    protected var _patches: IndexedAgentSet = null
+    private[agent] var _patches: IndexedAgentSet = null
     def patches: IndexedAgentSet = _patches
 
     protected var _links: TreeAgentSet = null;
@@ -113,153 +113,6 @@ trait CoreWorld
     def allStoredValues: scala.collection.Iterator[Object] = AllStoredValues.apply(this)
 }
 
-trait AgentManagement
-  extends TurtleManagement
-  with LinkManagement
-  with ObserverManagement
-  with WorldKernel { this: CoreWorld =>
-
-  def program: Program
-  def patches: IndexedAgentSet
-  def turtles: TreeAgentSet
-  def links: TreeAgentSet
-
-  // TODO: Consider whether these can become static vals
-  val noTurtles: AgentSet = AgentSet.emptyTurtleSet
-  val noPatches: AgentSet = AgentSet.emptyPatchSet
-  val noLinks:   AgentSet = AgentSet.emptyLinkSet
-
-  def patchesOwnNameAt(index: Int): String = program.patchesOwn(index)
-  def patchesOwnIndexOf(name: String): Int = program.patchesOwn.indexOf(name)
-  def observerOwnsNameAt(index: Int): String = program.globals(index)
-  def observerOwnsIndexOf(name: String): Int =
-    observer.variableIndex(name.toUpperCase)
-
-  protected var breedsOwnCache: JHashMap[String, Integer] = new JHashMap[String, Integer]()
-
-  def createPatches(minPx: Int, maxPx: Int, minPy: Int, maxPy: Int)
-  @throws(classOf[AgentException])
-  def getPatchAt(x: Double, y: Double): Patch
-  def fastGetPatchAt(xc: Int, yc: Int): Patch
-  def getOrCreateTurtle(id: Long): Turtle
-
-  /// creating & clearing
-  def createPatches(dim: WorldDimensions): Unit = {
-    createPatches(dim.minPxcor, dim.maxPxcor, dim.minPycor, dim.maxPycor)
-  }
-
-  def getVariablesArraySize(patch: Patch): Int = program.patchesOwn.size
-
-  def indexOfVariable(agentKind: AgentKind, name: String): Int = {
-    if (agentKind == AgentKind.Observer)
-      observerOwnsIndexOf(name)
-    else if (agentKind == AgentKind.Turtle)
-      turtlesOwnIndexOf(name)
-    else if (agentKind == AgentKind.Link)
-      linksOwnIndexOf(name)
-    else
-      patchesOwnIndexOf(name)
-  }
-
-  def getPatch(id: Int): Patch =
-    _patches.getByIndex(id).asInstanceOf[Patch]
-
-  def agentKindToAgentSet(agentKind: AgentKind): AgentSet = {
-    agentKind match {
-      case AgentKind.Turtle => _turtles
-      case AgentKind.Patch => _patches
-      case AgentKind.Observer => observers
-      case AgentKind.Link => _links
-    }
-  }
-
-  abstract override def clearAll(): Unit = {
-    super.clearAll()
-    clearPatches()
-    clearGlobals()
-    // Note: for mystery reasons, this used to live at the end of clearTurtles
-    observer.updatePosition()
-    observer.resetPerspective()
-  }
-
-  def getOrCreateLink(end1: JDouble, end2: JDouble, breed: AgentSet): Link = {
-    getOrCreateLink(
-      getOrCreateTurtle(end1.longValue),
-      getOrCreateTurtle(end2.longValue), breed)
-  }
-
-  def getOrCreateLink(end1: Turtle, end2: Turtle, breed: AgentSet): Link = {
-    val link = getLink(end1.agentKey, end2.agentKey, breed);
-    if (link == null) {
-      linkManager.createLink(end1, end2, breed)
-    } else {
-      link
-    }
-  }
-
-  def getOrCreateDummyLink(end1: Object, end2: Object, breed: AgentSet): Link = {
-    val linkOption =
-      if (end1 == Nobody || end2 == Nobody) None
-      else
-        Option(
-          getLink(
-            end1.asInstanceOf[Turtle].agentKey,
-            end2.asInstanceOf[Turtle].agentKey, breed))
-
-    linkOption.getOrElse(
-      linkManager.dummyLink(end1.asInstanceOf[Turtle], end2.asInstanceOf[Turtle], breed))
-  }
-
-  def indexOfVariable(agent: Agent, name: String): Int = {
-    agent match {
-      case observer: Observer => observerOwnsIndexOf(name)
-      case turtle: Turtle =>
-        val breed = turtle.getBreed
-        if (breed == _turtles) turtlesOwnIndexOf(name)
-        else {
-          val breedIndexOf = breedsOwnIndexOf(breed, name)
-          if (breedIndexOf != -1) breedIndexOf
-          else                    turtlesOwnIndexOf(name)
-        }
-      case link: Link =>
-        val breed = link.getBreed
-        if (breed == _links) linksOwnIndexOf(name)
-        else {
-          val breedIndexOf = linkBreedsOwnIndexOf(breed, name)
-          if (breedIndexOf != -1) breedIndexOf
-          else                    linksOwnIndexOf(name)
-        }
-      case _ => patchesOwnIndexOf(name)
-    }
-  }
-
-
-  def clearPatches(): Unit = {
-    val iter = patches.iterator
-    while(iter.hasNext) {
-      val patch = iter.next().asInstanceOf[Patch]
-      patch.pcolorDoubleUnchecked(Color.BoxedBlack)
-      patch.label("")
-      patch.labelColor(Color.BoxedWhite)
-      try {
-        // TODO: we should consider using Arrays.fill here...
-        var j = patch.NUMBER_PREDEFINED_VARS
-        while (j < patch.variables.length) {
-          patch.setPatchVariable(j, Zero)
-          j += 1
-        }
-      } catch {
-        case ex: AgentException => throw new IllegalStateException(ex)
-      }
-    }
-  }
-
-  def setUpShapes(clearOld: Boolean): Unit = {
-    turtleBreedShapes.setUpBreedShapes(clearOld, breeds)
-    linkBreedShapes.setUpBreedShapes(clearOld, linkBreeds)
-  }
-}
-
 trait World extends CoreWorld with GrossWorldState with AgentManagement {
   def inRadiusOrCone: World.InRadiusOrCone
   def clearDrawing(): Unit
@@ -275,6 +128,7 @@ trait World extends CoreWorld with GrossWorldState with AgentManagement {
     reader: java.io.BufferedReader): Unit
   def notifyWatchers(agent: Agent, vn: Int, value: Object): Unit
   def sprout(patch: Patch, breed: AgentSet): Turtle
+  def copy(): World
 }
 
 // A note on wrapping: normally whether x and y coordinates wrap is a
@@ -413,6 +267,15 @@ class World2D extends World with CompilationManagement {
 
   def fastGetPatchAt(xc: Int, yc: Int): Patch =
     getPatch(_worldWidth * (_maxPycor - yc) + xc - _minPxcor)
+
+  def copy(): World = {
+    val newWorld = new World2D()
+    newWorld.program(program)
+    copyDimensions(newWorld)
+    copyAgents(newWorld, newWorld)
+    copyGrossState(newWorld)
+    newWorld
+  }
 
   def createPatches(minPxcor: Int, maxPxcor: Int,
     minPycor: Int, maxPycor: Int): Unit = {
