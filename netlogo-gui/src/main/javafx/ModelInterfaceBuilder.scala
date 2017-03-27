@@ -13,7 +13,7 @@ import org.nlogo.core.{
   I18N, Model, Button => CoreButton, Chooser => CoreChooser, InputBox => CoreInputBox,
   Monitor => CoreMonitor, Output => CoreOutput, Plot => CorePlot, Slider => CoreSlider,
   TextBox => CoreTextBox, View => CoreView, Widget => CoreWidget }
-import org.nlogo.internalapi.{ CompiledButton => ApiCompiledButton, CompiledModel, ModelRunner }
+import org.nlogo.internalapi.{ AddProcedureRun, CompiledButton => ApiCompiledButton, CompiledModel, ModelRunner }
 
 object ModelInterfaceBuilder {
 
@@ -28,11 +28,12 @@ object ModelInterfaceBuilder {
           button.relocate(b.left, b.top)
           button.setOnAction(new EventHandler[ActionEvent] {
             override def handle(a: ActionEvent): Unit = {
-              compiledModel.runnableModel.runTag(compiledButton.tag, modelRunner)
+              compiledModel.runnableModel.runTag(compiledButton.procedureTag, modelRunner)
+              // compiledModel.runnableModel.submitAction(AddProcedureRun(compiledButton.procedureTag, true))
             }
           })
           interfacePane.getChildren.add(button)
-          Seq(compiledButton.tag -> button)
+          Seq(compiledButton.procedureTag -> button)
         case other =>
           other.widget match {
             case s: CoreSlider  =>
