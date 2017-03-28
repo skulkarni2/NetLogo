@@ -25,7 +25,8 @@ class DummyJobOwner(val random: MersenneTwisterFast) extends JobOwner {
 class SuspendableJob(
   suspendedState: Option[(Context, AgentIterator)], stepSize: Int, parentActivation: Activation, agentset: AgentSet, topLevelProcedure: Procedure,
   address: Int, parentContext: Context, workspace: Workspace, random: MersenneTwisterFast)
-extends Job(new DummyJobOwner(random), agentset, topLevelProcedure, address, parentContext, workspace, random) {
+  extends Job(new DummyJobOwner(random), agentset, topLevelProcedure, address, parentContext, workspace, random)
+  with org.nlogo.internalapi.SuspendableJob {
 
   def this(
   suspendedState: Option[(Context, AgentIterator)], stepSize: Int, agentset: AgentSet, topLevelProcedure: Procedure,
