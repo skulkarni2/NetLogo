@@ -55,15 +55,26 @@ class ScheduledJobThreadTest extends FunSuite {
   }
 
   class Subject extends JobScheduler {
+    override def timeout = 10
     val queue = new LinkedBlockingQueue[ScheduledEvent]
-  }
-  object DummyOneRunJob extends SuspendableJob {
-    def runFor(steps: Int): Option[SuspendableJob] = None
   }
 
   trait Helper extends Inside {
     val subject = new Subject()
     def firstEvent = subject.queue.peek()
+    var wasRun: Boolean = false
+    val DummyOneRunJob = new SuspendableJob {
+      def runFor(steps: Int): Option[SuspendableJob] = {
+        wasRun = true
+        None
+      }
+    }
+    val DummyKeepRunningJob = new SuspendableJob {
+      def runFor(steps: Int): Option[SuspendableJob] = {
+        wasRun = true
+        Some(this)
+      }
+    }
   }
 
   test("adding a job schedules the job to be run") { new Helper {
@@ -90,15 +101,48 @@ class ScheduledJobThreadTest extends FunSuite {
     }
   } }
 
-  test("a job stop prevents a scheduled job from being run") { new Helper {
-    pending
+  test("Running a job executes the job") { new Helper {
+    subject.scheduleJob(DummyOneRunJob)
+    subject.runEvent()
+    subject.runEvent()
+    assert(wasRun)
+    assert(subject.queue.isEmpty)
   } }
 
-  test("if a job stop is processed before the job is added, the job is never added"){
-    pending
-  }
+  test("a job may continue to run by returning a job to continue running") { new Helper {
+    val tag = subject.scheduleJob(DummyKeepRunningJob)
+    subject.runEvent()
+    subject.runEvent()
+    assert(! subject.queue.isEmpty)
+    inside(subject.queue.peek) { case RunJob(job, t, _) =>
+      assert(job == DummyKeepRunningJob)
+      assert(t == tag)
+    }
+  } }
 
-  test("schedules the continuation of a job if the job returns a continuation"){
-    pending
-  }
+  test("if a job stop is processed before the job is added, the job is never added"){ new Helper {
+    val jobTag = subject.scheduleJob(DummyOneRunJob)
+    val stopJob = subject.stopJob(jobTag)
+    subject.queue.add(subject.queue.poll()) // swap the order of the job add and job stop
+    subject.runEvent()
+    subject.runEvent()
+    assert(subject.queue.isEmpty)
+    assert(! wasRun)
+  } }
+
+  test("a job stop prevents a scheduled job from being run") { new Helper {
+    val jobTag = subject.scheduleJob(DummyOneRunJob)
+    val stopJob = subject.stopJob(jobTag)
+    subject.runEvent()
+    subject.runEvent()
+    subject.runEvent()
+    assert(! wasRun)
+  } }
+
+  test("A scheduled operation is run in turn") { new Helper {
+    var ranOp = false
+    subject.scheduleOperation({ () => ranOp = true })
+    subject.runEvent()
+    assert(ranOp)
+  } }
 }

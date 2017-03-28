@@ -3,7 +3,7 @@
 package org.nlogo.job
 
 import java.util.{ Comparator, UUID }
-import java.util.concurrent.BlockingQueue
+import java.util.concurrent.{ BlockingQueue, PriorityBlockingQueue, TimeUnit }
 
 import org.nlogo.internalapi.{ AddProcedureRun, JobScheduler => ApiJobScheduler,
   ModelAction, StopProcedure, SuspendableJob, UpdateInterfaceGlobal }
@@ -47,6 +47,11 @@ object ScheduledJobThread {
 import ScheduledJobThread._
 
 trait JobScheduler extends ApiJobScheduler {
+  val StepsPerRun = 100
+
+  def timeout = 500
+  def timeoutUnit: TimeUnit = TimeUnit.MILLISECONDS
+
   def queue: BlockingQueue[ScheduledEvent]
 
   def scheduleJob(job: SuspendableJob): String = {
@@ -67,11 +72,60 @@ trait JobScheduler extends ApiJobScheduler {
     queue.add(StopJob(jobTag, System.currentTimeMillis))
   }
 
+  // NOTE: This is *not* volatile because it should only ever be accessed on the
+  // background thread. Do *NOT* modify this from any other thread.
+  //
+  // We opted to use a scala set here because we think this will be empty most of the time
+  // if we're ever in a situation where this is going to be non-empty or have more than a
+  // few elements, we might consider using java.util.HashSet instead
+  private var stopList = Set.empty[String]
+
+  def clearStopList(): Unit = {
+    stopList = Set.empty[String]
+  }
+
   // this should maybe take a timeout parameter?
   def runEvent(): Unit = {
-    queue.poll() match {
-      case AddJob(j, t, time) => queue.add(RunJob(j, t, System.currentTimeMillis))
-      case _ =>
+    queue.poll(timeout, timeoutUnit) match {
+      case null                   => clearStopList()
+      case AddJob(job, tag, time) =>
+        if (stopList.contains(tag)) stopList -= tag
+        else                        queue.add(RunJob(job, tag, System.currentTimeMillis))
+      case RunJob(job, tag, time) =>
+        if (stopList.contains(tag)) stopList -= tag
+        else {
+          job.runFor(StepsPerRun) match {
+            case None    =>
+            case Some(j) => queue.add(RunJob(j, tag, System.currentTimeMillis))
+          }
+        }
+      case StopJob(cancelTag, time) =>
+        stopList += cancelTag
+      case ScheduleOperation(op, tag, time) => op()
     }
+  }
+}
+
+class ScheduledJobThread extends Thread(null, null, "ScheduledJobThread", JobThread.stackSize * 1024 * 1024)
+  with JobScheduler {
+
+  val queue = new PriorityBlockingQueue[ScheduledEvent](100, ScheduledJobThread.PriorityOrder)
+
+  @volatile private var dying = false
+
+  override def run(): Unit = {
+    while (! dying) {
+      try {
+        runEvent()
+      } catch {
+        case i: InterruptedException =>
+      }
+    }
+  }
+
+  def die(): Unit = {
+    dying = true
+    interrupt()
+    join()
   }
 }
