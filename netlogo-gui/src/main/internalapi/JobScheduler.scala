@@ -10,4 +10,9 @@ trait JobScheduler {
   def scheduleJob(job: SuspendableJob): String
   def stopJob(jobTag: String): Unit
   def scheduleOperation(op: () => Unit): String
+  def die()
+}
+
+trait SchedulerWorkspace {
+  def scheduledJobThread: JobScheduler
 }

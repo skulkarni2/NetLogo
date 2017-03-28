@@ -57,6 +57,7 @@ class ScheduledJobThreadTest extends FunSuite {
   class Subject extends JobScheduler {
     override def timeout = 10
     val queue = new LinkedBlockingQueue[ScheduledEvent]
+    def die(): Unit = {}
   }
 
   trait Helper extends Inside {

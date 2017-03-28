@@ -84,7 +84,7 @@ trait JobScheduler extends ApiJobScheduler {
     stopList = Set.empty[String]
   }
 
-  // this should maybe take a timeout parameter?
+  // TODO: This doesn't yet return information about completed jobs
   def runEvent(): Unit = {
     queue.poll(timeout, timeoutUnit) match {
       case null                   => clearStopList()
@@ -113,12 +113,18 @@ class ScheduledJobThread extends Thread(null, null, "ScheduledJobThread", JobThr
 
   @volatile private var dying = false
 
+  setPriority(Thread.NORM_PRIORITY - 1)
+  start()
+  // TODO: need to implement halt here...
   override def run(): Unit = {
     while (! dying) {
       try {
         runEvent()
       } catch {
         case i: InterruptedException =>
+        case e: Exception =>
+          println(e)
+          e.printStackTrace()
       }
     }
   }
