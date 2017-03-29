@@ -5,7 +5,7 @@ package org.nlogo.app
 import java.net.URI
 import java.util.concurrent.Executor
 
-import java.util.concurrent.BlockingQueue
+import java.util.concurrent.{ BlockingQueue, LinkedBlockingQueue }
 
 import javafx.application.Platform
 import javafx.fxml.FXML
@@ -15,7 +15,7 @@ import javafx.scene.control.{ Alert, Button, ButtonType, MenuBar => JFXMenuBar ,
 import javafx.scene.layout.{ AnchorPane, Pane }
 import javafx.stage.{ FileChooser, Window }
 
-import org.nlogo.javafx.{ ButtonControl, CompileAll, GraphicsInterface, JavaFXExecutionContext, ModelInterfaceBuilder, OpenModelUI }
+import org.nlogo.javafx.{ ButtonControl, CompileAll, GraphicsInterface, JavaFXExecutionContext, ModelInterfaceBuilder, OpenModelUI , UpdateFilterThread }
 import org.nlogo.api.ModelLoader
 import org.nlogo.agent.World
 import org.nlogo.internalapi.{ CompiledModel, ModelRunner, ModelUpdate, SchedulerWorkspace, WorldUpdate }
@@ -33,7 +33,18 @@ class ApplicationController extends ModelRunner {
   var modelLoader: ModelLoader = _
   var modelConverter: ModelConversion = _
 
-  var worldUpdates: BlockingQueue[ModelUpdate] = _
+  def worldUpdates: BlockingQueue[ModelUpdate] = null
+
+  // used to communicate between the job thread and the polling thread
+  var filterThread: UpdateFilterThread = _
+
+  def worldUpdates_=(updates: BlockingQueue[ModelUpdate]) = {
+    if (filterThread != null) {
+      filterThread.die()
+    }
+    filterThread = new UpdateFilterThread(updates)
+    filterThread.start()
+  }
 
   @FXML
   var openFile: MenuItem = _
@@ -48,6 +59,8 @@ class ApplicationController extends ModelRunner {
 
   var interfacePane: Pane = _
   var compiledModel: CompiledModel = _
+
+  var lastWorldTimestamp: Long = 0
 
   val timer = new java.util.Timer()
 
@@ -118,26 +131,32 @@ class ApplicationController extends ModelRunner {
   }
 
   def refreshCanvas(): Unit = {
-    var updatesFinished = false
-    while (! updatesFinished) {
-      Option(worldUpdates.poll()) match {
-        case Some(WorldUpdate(world: World)) =>
-          interfacePane.getChildren().asScala.foreach {
-            case c: Canvas =>
-              val graphicsInterface = new GraphicsInterface(c.getGraphicsContext2D)
-              val renderer = new org.nlogo.render.Renderer(workspace.world)
-              val settings = new FakeViewSettings(c, world)
-              renderer.paint(graphicsInterface, settings)
-            case _ =>
-          }
-          case Some(other) => compiledModel.runnableModel.notifyUpdate(other)
-          case None => updatesFinished = true
+    val (world, t) = filterThread.latestWorld.get
+    if (t != lastWorldTimestamp) {
+      lastWorldTimestamp = t
+      interfacePane.getChildren().asScala.foreach {
+        case c: Canvas =>
+          val graphicsInterface = new GraphicsInterface(c.getGraphicsContext2D)
+          val renderer = new org.nlogo.render.Renderer(workspace.world)
+          val settings = new FakeViewSettings(c, world)
+          renderer.paint(graphicsInterface, settings)
+        case _ =>
       }
     }
-    timer.schedule(scheduleRefresh, 200)
+
+    for {
+      model  <- Option(compiledModel)
+      update <- Option(filterThread.filteredUpdates.poll())
+    } {
+      model.runnableModel.notifyUpdate(update)
+    }
+
+    // if we do a hard loop here, we don't give the UI a chance to actually "flip" the canvas
+    timer.schedule(scheduleRefresh, 40)
   }
 
   def dispose(): Unit = {
+    filterThread.die()
     timer.cancel()
   }
 }

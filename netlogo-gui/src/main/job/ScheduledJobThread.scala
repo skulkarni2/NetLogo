@@ -128,6 +128,7 @@ class ScheduledJobThread(val updates: BlockingQueue[ModelUpdate])
 
   setPriority(Thread.NORM_PRIORITY - 1)
   start()
+
   // TODO: need to implement halt here...
   override def run(): Unit = {
     while (! dying) {
