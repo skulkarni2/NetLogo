@@ -146,4 +146,8 @@ class ScheduledJobThreadTest extends FunSuite {
     subject.runEvent()
     assert(ranOp)
   } }
+
+  test("supports a halt operation which clears all existing jobs") {
+    pending
+  }
 }
