@@ -76,6 +76,7 @@ class ApplicationController extends ModelRunner {
               compiledModel
           }(executionContext).foreach {
             compiledModel =>
+              ApplicationController.this.compiledModel = compiledModel
               val (interfaceWidgetsPane, widgetsMap) =
                 ModelInterfaceBuilder.build(compiledModel, ApplicationController.this)
               interfacePane = interfaceWidgetsPane
@@ -86,7 +87,7 @@ class ApplicationController extends ModelRunner {
       }
     })
     /* start scheduling canvas updates */
-    timer.schedule(scheduleRefresh, 1000)
+    timer.schedule(scheduleRefresh, 200)
   }
 
   def scheduleRefresh =
@@ -102,36 +103,41 @@ class ApplicationController extends ModelRunner {
 
   import scala.collection.JavaConverters._
 
+  class FakeViewSettings(canvas: Canvas, world: World) extends org.nlogo.api.ViewSettings {
+    def fontSize: Int = 12
+    // TODO: Why is this separate from world.patchSize?
+    def patchSize: Double = world.patchSize
+    def viewWidth: Double = canvas.getWidth
+    def viewHeight: Double = canvas.getHeight
+    def perspective: org.nlogo.api.Perspective = world.observer.perspective
+    def viewOffsetX: Double = world.observer.followOffsetX
+    def viewOffsetY: Double = world.observer.followOffsetY
+    def drawSpotlight: Boolean = true
+    def renderPerspective: Boolean = true
+    def isHeadless: Boolean = false
+  }
+
   def refreshCanvas(): Unit = {
-    Option(worldUpdates.poll()).foreach {
-      case WorldUpdate(world: World) =>
-        interfacePane.getChildren().asScala.foreach {
-          case c: Canvas =>
-            val graphicsInterface = new GraphicsInterface(c.getGraphicsContext2D)
-            val renderer = new org.nlogo.render.Renderer(workspace.world)
-            val settings = new org.nlogo.api.ViewSettings {
-              def fontSize: Int = 12
-              // TODO: Why is this separate from world.patchSize?
-              def patchSize: Double = world.patchSize
-              def viewWidth: Double = c.getWidth
-              def viewHeight: Double = c.getHeight
-              def perspective: org.nlogo.api.Perspective = world.observer.perspective
-              def viewOffsetX: Double = world.observer.followOffsetX
-              def viewOffsetY: Double = world.observer.followOffsetY
-              def drawSpotlight: Boolean = true
-              def renderPerspective: Boolean = true
-              def isHeadless: Boolean = false
-            }
-            renderer.paint(graphicsInterface, settings)
+    var updatesFinished = false
+    while (! updatesFinished) {
+      Option(worldUpdates.poll()) match {
+        case Some(WorldUpdate(world: World)) =>
+          interfacePane.getChildren().asScala.foreach {
+            case c: Canvas =>
+              val graphicsInterface = new GraphicsInterface(c.getGraphicsContext2D)
+              val renderer = new org.nlogo.render.Renderer(workspace.world)
+              val settings = new FakeViewSettings(c, world)
+              renderer.paint(graphicsInterface, settings)
             case _ =>
-        }
-      case other => compiledModel.runnableModel.notifyUpdate(other)
+          }
+          case Some(other) => compiledModel.runnableModel.notifyUpdate(other)
+          case None => updatesFinished = true
+      }
     }
-    timer.schedule(scheduleRefresh, 1000)
+    timer.schedule(scheduleRefresh, 200)
   }
 
   def dispose(): Unit = {
     timer.cancel()
   }
-
 }

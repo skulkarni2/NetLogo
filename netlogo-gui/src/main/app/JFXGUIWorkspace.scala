@@ -18,7 +18,7 @@ class JFXGUIWorkspace(world: World,
   modelUpdates: BlockingQueue[ModelUpdate])
   extends AbstractWorkspaceScala(world, null) with SchedulerWorkspace {
 
-    val scheduledJobThread = Femto.get[JobScheduler]("org.nlogo.job.ScheduledJobThread")
+    val scheduledJobThread = Femto.get[JobScheduler]("org.nlogo.job.ScheduledJobThread", modelUpdates)
 
   // Members declared in org.nlogo.workspace.AbstractWorkspace
   def aggregateManager(): org.nlogo.api.AggregateManagerInterface = ???
@@ -39,7 +39,6 @@ class JFXGUIWorkspace(world: World,
   def open(x$1: String): Unit = ???
   def openString(x$1: String): Unit = ???
   def requestDisplayUpdate(force: Boolean): Unit = {
-    println("requestDisplayUpdate: " + force + " from: " + Thread.currentThread.getName)
     modelUpdates.offer(WorldUpdate(world.copy)) // TODO: This should be a copy of world
   }
   override def sendOutput(x$1: org.nlogo.agent.OutputObject,x$2: Boolean): Unit = ???
