@@ -42,7 +42,7 @@ class ApplicationController extends ModelRunner {
     if (filterThread != null) {
       filterThread.die()
     }
-    filterThread = new UpdateFilterThread(updates)
+    filterThread = new UpdateFilterThread(updates, 40, () => refreshCanvas())
     filterThread.start()
   }
 
@@ -61,8 +61,6 @@ class ApplicationController extends ModelRunner {
   var compiledModel: CompiledModel = _
 
   var lastWorldTimestamp: Long = 0
-
-  val timer = new java.util.Timer()
 
   def tagError(tag: String, error: Exception): Unit = {
     // empty implementation (for now!)
@@ -99,20 +97,8 @@ class ApplicationController extends ModelRunner {
         }
       }
     })
-    /* start scheduling canvas updates */
-    timer.schedule(scheduleRefresh, 200)
   }
 
-  def scheduleRefresh =
-    new java.util.TimerTask {
-      override def run(): Unit = {
-        Platform.runLater(new Runnable() {
-          override def run(): Unit = {
-            refreshCanvas()
-          }
-        })
-      }
-    }
 
   import scala.collection.JavaConverters._
 
@@ -150,13 +136,9 @@ class ApplicationController extends ModelRunner {
     } {
       model.runnableModel.notifyUpdate(update)
     }
-
-    // if we do a hard loop here, we don't give the UI a chance to actually "flip" the canvas
-    timer.schedule(scheduleRefresh, 40)
   }
 
   def dispose(): Unit = {
     filterThread.die()
-    timer.cancel()
   }
 }
