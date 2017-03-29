@@ -18,14 +18,17 @@ class UpdateFilterThread(worldUpdates: BlockingQueue[ModelUpdate], periodicInter
   var latestWorld = new AtomicReference[(World, Long)]((null, 0))
   val updatePending = new AtomicBoolean(false)
   private var lastUpdateRequest: Long = 0
+  @volatile
+  var dying = false
 
   def die(): Unit = {
+    dying = true
     interrupt()
     join()
   }
 
   override def run(): Unit = {
-    while (! Thread.interrupted) {
+    while (! dying) {
       try {
         worldUpdates.poll(periodicInterval, TimeUnit.MILLISECONDS) match {
           case null                         =>
