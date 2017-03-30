@@ -130,12 +130,15 @@ class WorldTests extends FunSuite with AbstractTestWorld {
     assert(world.ticks == -1)
   }
 
-  /*
   test("worlds can be copied") {
     val program = Program.empty.copy(linkBreeds = ListMap("FOOS" -> Breed("FOOS", "FOO", owns = Seq("A", "B"), isLinkBreed = true)))
     val world = makeWorld(worldRectangle, program)
-    assert(world == world.copy)
-    assert(world ne world.copy)
+    val t1 = world.createTurtle(world.turtles)
+    t1.xandycor(1, 2)
+    world.createTurtle(world.turtles)
+    val copiedWorld = world.copy
+    assert(world.turtles.count == copiedWorld.turtles.count)
+    assert(copiedWorld.getTurtle(0).xcor == 1)
+    assert(copiedWorld.getTurtle(0).ycor == 2)
   }
-  */
 }
