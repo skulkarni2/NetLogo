@@ -18,14 +18,14 @@ object ScheduledJobThread {
   case class ScheduleOperation(op: () => Unit, tag: String, submissionTime: Long) extends ScheduledEvent
   case class StopJob(cancelTag: String, submissionTime: Long) extends ScheduledEvent
   case class AddJob(job: SuspendableJob, tag: String, submissionTime: Long) extends ScheduledEvent
-  case class AddMonitor(tag: String, op: () => AnyRef, submissionTime: Long) extends ScheduledEvent
+  case class AddMonitor(tag: String, op: SuspendableJob, submissionTime: Long) extends ScheduledEvent
   // Q: Why not have AddJob and RunJob be the same?
   // A: I don't think that's a bad idea, per se, but I want to allow flexibility in the future.
   //    Having RunJob events created only the RunJob event to hold additional information
   //    about the job including things like "how long since it was run last" and "how long
   //    is it estimated to run for" that isn't available when adding the job. RG 3/28/17
   case class RunJob(job: SuspendableJob, tag: String, submissionTime: Long) extends ScheduledEvent
-  case class RunMonitors(monitorOps: Map[String, () => AnyRef], submissionTime: Long) extends ScheduledEvent
+  case class RunMonitors(monitorOps: Map[String, SuspendableJob], submissionTime: Long) extends ScheduledEvent
 
   object PriorityOrder extends Comparator[ScheduledEvent] {
     // lower means "first" or higher priority
@@ -77,7 +77,7 @@ trait JobScheduler extends ApiJobScheduler {
     jobTag
   }
 
-  def registerMonitorUpdate(name: String, op: () => AnyRef): Unit = {
+  def registerMonitor(name: String, op: SuspendableJob): Unit = {
     queue.add(AddMonitor(name, op, System.currentTimeMillis))
   }
 
@@ -92,7 +92,7 @@ trait JobScheduler extends ApiJobScheduler {
   // if we're ever in a situation where this is going to be non-empty or have more than a few
   // elements, consider using java collections instead
   private var stopList        = Set.empty[String]
-  private var pendingMonitors = Map.empty[String, () => AnyRef]
+  private var pendingMonitors = Map.empty[String, SuspendableJob]
   private var monitorsRunning = false
 
   def clearStopList(): Unit = {
@@ -137,10 +137,10 @@ trait JobScheduler extends ApiJobScheduler {
         }
       case RunMonitors(updaters, time) =>
         val allMonitors = updaters ++ pendingMonitors
-        pendingMonitors = Map.empty[String, () => AnyRef]
-        val monitorValues = allMonitors.map { case (k, op) => k -> Try(op()) }.toMap
+        pendingMonitors = Map.empty[String, SuspendableJob]
+        val monitorValues = allMonitors.map { case (k, j) => k -> Try(j.runResult()) }.toMap
         queue.add(RunMonitors(allMonitors, System.currentTimeMillis))
-        updates.add(MonitorsUpdate(monitorValues))
+        updates.add(MonitorsUpdate(monitorValues, System.currentTimeMillis))
     }
   }
 }

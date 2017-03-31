@@ -47,8 +47,8 @@ class ScheduledJobThreadTest extends FunSuite {
   }
 
   test("job ordering ranks adding a job and adding a monitor by time"){
-    assertSortedOrder(AddMonitor("abc", () => Double.box(123), 0), AddJob(null, "abc", 1))
-    assertSortedOrder(AddJob(null, "abc", 0), AddMonitor("abc", () => Double.box(123), 1))
+    assertSortedOrder(AddMonitor("abc", null, 0), AddJob(null, "abc", 1))
+    assertSortedOrder(AddJob(null, "abc", 0), AddMonitor("abc", null, 1))
   }
 
   test("job ordering puts run job behind adding a job"){
@@ -62,11 +62,11 @@ class ScheduledJobThreadTest extends FunSuite {
   }
 
   test("job ordering puts an old monitor update ahead of RunJob") {
-    assertSortedOrder(RunMonitors(Map.empty[String, () => AnyRef], 0), RunJob(null, "abc", 1))
+    assertSortedOrder(RunMonitors(Map.empty[String, SuspendableJob], 0), RunJob(null, "abc", 1))
   }
 
   test("job ordering puts an old job ahead of monitor updates") {
-    assertSortedOrder(RunMonitors(Map.empty[String, () => AnyRef], 0), RunJob(null, "abc", 1))
+    assertSortedOrder(RunMonitors(Map.empty[String, SuspendableJob], 0), RunJob(null, "abc", 1))
   }
 
   class Subject extends JobScheduler {
@@ -85,18 +85,25 @@ class ScheduledJobThreadTest extends FunSuite {
         wasRun = true
         None
       }
+      def runResult(): AnyRef = null
     }
     val DummyKeepRunningJob = new SuspendableJob {
       def runFor(steps: Int): Option[SuspendableJob] = {
         wasRun = true
         Some(this)
       }
+      def runResult(): AnyRef = null
     }
     val DummyErrorJob = new SuspendableJob {
       def runFor(steps: Int): Option[SuspendableJob] = {
         wasRun = true
         throw new RuntimeException("error!")
       }
+      def runResult(): AnyRef = null
+    }
+    val resultJob = new SuspendableJob {
+      def runFor(steps: Int) = None
+      def runResult(): AnyRef = Double.box(123)
     }
     def assertUpdate[U](pf: PartialFunction[ModelUpdate, U]): U = {
       assert(! subject.updates.isEmpty)
@@ -219,13 +226,13 @@ class ScheduledJobThreadTest extends FunSuite {
   } }
 
   test("sends monitor updates") { new Helper {
-    subject.registerMonitorUpdate("abc", () => Double.box(123))
+    subject.registerMonitor("abc", resultJob)
     subject.runEvent()
     subject.runEvent()
-    assertUpdate { case MonitorsUpdate(values) => assertResult(Try(Double.box(123)))(values("abc")) }
+    assertUpdate { case MonitorsUpdate(values, _) => assertResult(Try(Double.box(123)))(values("abc")) }
   } }
 
-  test("supports a halt operation which clears all existing jobs") {
+  test("supports a halt operation which clears all existing jobs and monitors") {
     pending
   }
 }
