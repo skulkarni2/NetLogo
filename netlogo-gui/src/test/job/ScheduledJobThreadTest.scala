@@ -101,9 +101,13 @@ class ScheduledJobThreadTest extends FunSuite {
       }
       def runResult(): AnyRef = null
     }
+    var timesRunResultRun = 0
     val resultJob = new SuspendableJob {
       def runFor(steps: Int) = None
-      def runResult(): AnyRef = Double.box(123)
+      def runResult(): AnyRef = {
+        timesRunResultRun += 1
+        Double.box(123)
+      }
     }
     def assertUpdate[U](pf: PartialFunction[ModelUpdate, U]): U = {
       assert(! subject.updates.isEmpty)
@@ -230,6 +234,14 @@ class ScheduledJobThreadTest extends FunSuite {
     subject.runEvent()
     subject.runEvent()
     assertUpdate { case MonitorsUpdate(values, _) => assertResult(Try(Double.box(123)))(values("abc")) }
+  } }
+
+  test("doesn't re-run monitors unless there's new data") { new Helper {
+    subject.registerMonitor("abc", resultJob)
+    subject.runEvent()
+    subject.runEvent()
+    subject.runEvent()
+    assert(timesRunResultRun == 1)
   } }
 
   test("supports a halt operation which clears all existing jobs and monitors") {

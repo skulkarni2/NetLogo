@@ -15,15 +15,17 @@ object ScheduledJobThread {
   sealed trait ScheduledEvent {
     def submissionTime: Long
   }
+
   case class ScheduleOperation(op: () => Unit, tag: String, submissionTime: Long) extends ScheduledEvent
   case class StopJob(cancelTag: String, submissionTime: Long) extends ScheduledEvent
   case class AddJob(job: SuspendableJob, tag: String, submissionTime: Long) extends ScheduledEvent
   case class AddMonitor(tag: String, op: SuspendableJob, submissionTime: Long) extends ScheduledEvent
   // Q: Why not have AddJob and RunJob be the same?
   // A: I don't think that's a bad idea, per se, but I want to allow flexibility in the future.
-  //    Having RunJob events created only the RunJob event to hold additional information
-  //    about the job including things like "how long since it was run last" and "how long
-  //    is it estimated to run for" that isn't available when adding the job. RG 3/28/17
+  //    Having RunJob events created only by the Scheduler allows them
+  //    to hold additional information about the job including things
+  //    like "how long since it was run last" and "how long is it estimated to run for"
+  //    that 't available when adding the job. RG 3/28/17
   case class RunJob(job: SuspendableJob, tag: String, submissionTime: Long) extends ScheduledEvent
   case class RunMonitors(monitorOps: Map[String, SuspendableJob], submissionTime: Long) extends ScheduledEvent
 
@@ -55,8 +57,10 @@ import ScheduledJobThread._
 
 trait JobScheduler extends ApiJobScheduler {
   val StepsPerRun = 100
+  val MonitorInterval = 100
 
   def timeout = 500
+
   def timeoutUnit: TimeUnit = TimeUnit.MILLISECONDS
 
   def queue: BlockingQueue[ScheduledEvent]
@@ -94,6 +98,7 @@ trait JobScheduler extends ApiJobScheduler {
   private var stopList        = Set.empty[String]
   private var pendingMonitors = Map.empty[String, SuspendableJob]
   private var monitorsRunning = false
+  private var monitorDataStale = true
 
   def clearStopList(): Unit = {
     stopList.foreach(jobStopped)
@@ -112,6 +117,7 @@ trait JobScheduler extends ApiJobScheduler {
         if (stopList.contains(tag)) jobStopped(tag)
         else                        queue.add(RunJob(job, tag, System.currentTimeMillis))
       case RunJob(job, tag, time) =>
+        monitorDataStale = true
         if (stopList.contains(tag)) jobStopped(tag)
         else {
           Try(job.runFor(StepsPerRun)) match {
@@ -124,6 +130,7 @@ trait JobScheduler extends ApiJobScheduler {
       case StopJob(cancelTag, time) =>
         stopList += cancelTag
       case ScheduleOperation(op, tag, time) =>
+        monitorDataStale = true
         Try(op()) match {
           case Success(())                  => updates.add(JobDone(tag))
           case Failure(e: RuntimeException) => updates.add(JobErrored(tag, e))
@@ -138,9 +145,14 @@ trait JobScheduler extends ApiJobScheduler {
       case RunMonitors(updaters, time) =>
         val allMonitors = updaters ++ pendingMonitors
         pendingMonitors = Map.empty[String, SuspendableJob]
-        val monitorValues = allMonitors.map { case (k, j) => k -> Try(j.runResult()) }.toMap
-        queue.add(RunMonitors(allMonitors, System.currentTimeMillis))
-        updates.add(MonitorsUpdate(monitorValues, System.currentTimeMillis))
+        if (monitorDataStale) {
+          val monitorValues = allMonitors.map { case (k, j) => k -> Try(j.runResult()) }.toMap
+          queue.add(RunMonitors(allMonitors, System.currentTimeMillis))
+          updates.add(MonitorsUpdate(monitorValues, System.currentTimeMillis))
+          monitorDataStale = false
+        } else {
+          queue.add(RunMonitors(allMonitors, System.currentTimeMillis + MonitorInterval))
+        }
     }
   }
 }

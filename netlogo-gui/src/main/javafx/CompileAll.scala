@@ -100,7 +100,6 @@ class CompiledRunnableModel(workspace: AbstractWorkspace with SchedulerWorkspace
       case MonitorsUpdate(values, time) =>
         values.foreach {
           case (k, Success(v)) =>
-            println(s"updating monitor $k to $v")
             monitorRegistry.get(k).foreach(_.update(v))
           case (k, Failure(v)) =>
             println(s"failure for monitor ${monitorRegistry(k)}: $v")
