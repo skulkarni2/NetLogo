@@ -101,10 +101,6 @@ class Match(val node: AstNode) {
       if(result.node eq alreadyMatched.node) matchArg(1, classes: _*)
       else result
   }
-  def report =
-    try node.asInstanceOf[ReporterApp].reporter.report(null)
-    catch { case ex: LogoException => throw new IllegalStateException(ex) }
-
   def strip() {
     node match {
       case app: ReporterApp =>
@@ -148,6 +144,7 @@ class Match(val node: AstNode) {
         stmt.command = newGuy.asInstanceOf[Command]
     }
   }
+
   def addArg(theClass: Class[_ <: Reporter], original: ReporterApp): Match = {
     val newGuy = Instantiator.newInstance[Reporter](theClass)
     newGuy.copyMetadataFrom(original.reporter)
