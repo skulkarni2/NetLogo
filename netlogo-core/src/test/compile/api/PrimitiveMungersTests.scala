@@ -9,8 +9,8 @@ import org.nlogo.nvm.{ Command, Context, Instruction, Reporter }
 import org.scalatest.{ FunSuite, Inside }
 
 class PrimitiveMungersTests extends FunSuite with Inside {
-  class DummyCoreCommand extends CoreCommand {
-    def syntax = Syntax.commandSyntax()
+  class DummyCoreCommand(rights: Int*) extends CoreCommand {
+    def syntax = Syntax.commandSyntax(right = rights.toList)
   }
   class DummyCoreReporter extends CoreReporter {
     def syntax = Syntax.reporterSyntax(ret = Syntax.NumberType)
@@ -57,6 +57,36 @@ class PrimitiveMungersTests extends FunSuite with Inside {
     val m = newMatch(statement(new DummyCoreCommand(), command, constNum))
     m.strip()
     inside(m.node) { case s: Statement => assert(s.args.length == 0) }
+  }
+
+  test("matchEmptyCommandBlockIsLastArg matches empty blocks") {
+    val command = new DummyCommand()
+    val emptyBlock = new StatementsBuilder { }
+    val m = newMatch(statement(new DummyCoreCommand(Syntax.CommandBlockType), command, emptyBlock.buildBlock))
+    m.matchEmptyCommandBlockIsLastArg
+  }
+
+  test("matchEmptyCommandBlockIsLastArg fails on non-empty block") {
+    val command = new DummyCommand()
+    val emptyBlock = new StatementsBuilder {
+      statement(new DummyCoreCommand(), new DummyCommand())
+    }
+    val m = newMatch(statement(new DummyCoreCommand(Syntax.CommandBlockType), command, emptyBlock.buildBlock))
+    intercept[MatchFailedException] {
+      m.matchEmptyCommandBlockIsLastArg
+    }
+  }
+
+  test("matchArg fails when there are no arguments") {
+    pending
+  }
+
+  test("matchArg succeeds when there is an argument at its index") {
+    pending
+  }
+
+  test("matchArg fails when there is no argument at its index") {
+    pending
   }
 
   test("match.reporter returns the ReporterApp reporter") {

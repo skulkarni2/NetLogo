@@ -57,7 +57,7 @@ class Match(val node: AstNode) {
           case block: CommandBlock if block.statements.stmts.isEmpty => new Match(block)
           case _ => throw new MatchFailedException
         }
-          case _ => throw new MatchFailedException
+      case _ => throw new MatchFailedException
     }
   def matchArg(index: Int) = {
     val args = node match {
