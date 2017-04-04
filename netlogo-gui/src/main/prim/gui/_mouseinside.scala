@@ -4,14 +4,14 @@ package org.nlogo.prim.gui
 
 import org.nlogo.core.Syntax
 import org.nlogo.nvm.{ Context, Reporter }
-import org.nlogo.window.GUIWorkspace
+import org.nlogo.internalapi.GUIWorkspace
 
 class _mouseinside extends Reporter {
 
   override def report(context: Context): java.lang.Boolean =
     workspace match {
       case gw: GUIWorkspace =>
-        gw.mouseInside()
+        gw.mouseInside
       case _ =>
         false
     }
