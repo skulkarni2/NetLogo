@@ -78,15 +78,28 @@ class PrimitiveMungersTests extends FunSuite with Inside {
   }
 
   test("matchArg fails when there are no arguments") {
-    pending
+    val command = new DummyCommand()
+    val m = newMatch(statement(new DummyCoreCommand(), command, constNum))
+    m.strip() //no more args
+    intercept[MatchFailedException] {
+      m.matchArg(0)
+    }
   }
 
   test("matchArg succeeds when there is an argument at its index") {
-    pending
+    val command = new DummyCommand()
+    val testReporter = repApp(new DummyCoreReporter(), new DummyReporter())
+    val m = newMatch(statement(new DummyCoreCommand(), command, testReporter))
+    m.matchArg(0)
   }
 
   test("matchArg fails when there is no argument at its index") {
-    pending
+    val command = new DummyCommand()
+    val testReporter = repApp(new DummyCoreReporter(), new DummyReporter())
+    val m = newMatch(statement(new DummyCoreCommand(), command, testReporter))
+    intercept[MatchFailedException] {
+      m.matchArg(1)
+    }
   }
 
   test("match.reporter returns the ReporterApp reporter") {
