@@ -286,11 +286,11 @@ object NetLogoPackaging {
         webTarget.value
       )
 
-      PackageWinAggregate(
+      JavaFXWindowsBuild(
         target.value / s"win-demo-${buildJDK.arch}",
         commonConfig,
         outDir -> "dummy",
-        Seq(NetLogoCoreApp),
+        Seq(NetLogoJavaFXApp),
         buildVariables.value)
     },
     iconFiles in packageMacAggregate := {

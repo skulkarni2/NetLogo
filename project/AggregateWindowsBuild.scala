@@ -10,7 +10,8 @@ import scala.collection.JavaConverters._
 
 import NetLogoPackaging.RunProcess
 
-object PackageWinAggregate {
+object PackageWinAggregate extends PackageWinAggregate
+trait PackageWinAggregate {
   // we're given a dummy package with a directory structure that look like:
   // dummy
   //  ├── dummy.exe (spaces intact)
@@ -96,7 +97,7 @@ object PackageWinAggregate {
     }.toMap
   }
 
-  private def configureSubApplication(sharedAppRoot: File, app: SubApplication, common: CommonConfiguration, variables: Map[String, AnyRef], helperBinDirectory: File): Unit = {
+  protected def configureSubApplication(sharedAppRoot: File, app: SubApplication, common: CommonConfiguration, variables: Map[String, AnyRef], helperBinDirectory: File): Unit = {
     val allVariables =
       variables ++ app.configurationVariables("windows") +
       ("mainClass"      -> app.mainClass) +
