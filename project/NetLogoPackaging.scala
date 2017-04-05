@@ -259,7 +259,7 @@ object NetLogoPackaging {
     },
     packageWinJavafx := {
       val buildJDK = aggregateJDKParser.parsed
-      val netLogoJar = repackageJar(DummyApp, WindowsPlatform, netlogo)
+      val netLogoJar = repackageJar(NetLogoJavaFXApp, WindowsPlatform, netlogo)
       val outDir = target.value / s"packaged-win-demo-${buildJDK.arch}-${buildJDK.version}"
       val srcDir = target.value / s"to-package-win-demo-${buildJDK.arch}-${buildJDK.version}"
       FileActions.createDirectories(srcDir)

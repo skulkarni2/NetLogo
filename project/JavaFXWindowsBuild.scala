@@ -67,19 +67,7 @@ object JavaFXWindowsBuild extends PackageWinAggregate {
         FileActions.copyAny(f, aggregateWinDir / f.getName)
       }
 
-      // extract IconSwap and download verpatch, used when customizing the executables
-      if (! (aggregateTarget / "IconSwap.exe").exists) {
-        val jfxJar = new java.util.jar.JarFile(file(jdk.javaHome.get) / "lib" / "ant-javafx.jar")
-        val iconSwapEntry = jfxJar.getEntry("com/oracle/tools/packager/windows/IconSwap.exe")
-        val iconSwapStream = jfxJar.getInputStream(iconSwapEntry)
-        IO.transfer(iconSwapStream, aggregateTarget / "IconSwap.exe")
-        iconSwapStream.close()
-        jfxJar.close()
-      }
-
-      if (! (aggregateTarget / "verpatch.exe").exists) {
-        IO.download(url("https://s3.amazonaws.com/ccl-artifacts/verpatch.exe"), aggregateTarget / "verpatch.exe")
-      }
+      extractBuildTools(aggregateTarget, jdk)
 
       // configure each sub application
       subApplications.foreach { app =>
@@ -123,8 +111,8 @@ object JavaFXWindowsBuild extends PackageWinAggregate {
           Map[String, AnyRef](
             "componentFriendlyName"  -> "NetLogo Multitouch",
             "noSpaceName"            -> "NetLogoMultitouch",
-            "componentId"            -> "NetLogoMultitouch.exe",
-            "componentFileName"      -> "NetLogoMultitouch.exe",
+            "componentId"            -> "NetLogo_Multitouch.exe",
+            "componentFileName"      -> "NetLogo Multitouch.exe",
             "lowerDashName"          -> "netlogo-multitouch",
             "componentGuid"          -> winVariables("nlogoMTExecutableId"),
             "desktopShortcutId"      -> winVariables("NetLogoMTDesktopShortcutId"),
@@ -145,7 +133,7 @@ object JavaFXWindowsBuild extends PackageWinAggregate {
 
     val generatedUUIDs =
       HarvestResources.harvest(aggregateWinDir.toPath, "INSTALLDIR", "NetLogoApp",
-        Seq("NetLogo.exe", "NetLogo 3D.exe", "HubNet Client.exe", "Behaviorsearch.exe"), winVariables,
+        Seq("NetLogo.exe", "NetLogo 3D.exe", "HubNet Client.exe", "Behaviorsearch.exe", "NetLogo Multitouch.exe"), winVariables,
         (msiBuildDir / "NetLogoApp.wxs").toPath)
 
     val candleCommand =
