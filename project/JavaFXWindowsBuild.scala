@@ -58,6 +58,18 @@ object JavaFXWindowsBuild extends PackageWinAggregate {
         aggregateWinDir, subApplications.map(_.name))
 
       val sharedJars = aggregateWinDir / "app"
+
+
+      commonConfig.bundledDirs.foreach { d =>
+        d.fileMappings.foreach {
+          case (f, p) =>
+            val targetFile = sharedJars / p
+            if (! targetFile.getParentFile.isDirectory)
+              FileActions.createDirectories(targetFile.getParentFile)
+            FileActions.copyFile(f, sharedJars / p)
+        }
+      }
+
       commonConfig.classpath.foreach { jar =>
         FileActions.copyFile(jar, sharedJars / jar.getName)
       }
@@ -124,7 +136,7 @@ object JavaFXWindowsBuild extends PackageWinAggregate {
             "associationDescription" -> "NetLogo Model"
           ) ++ baseComponentVariables).map(_.asJava).asJava)
 
-    Mustache(aggregateConfigDir / "NetLogo.wxs.mustache",
+    Mustache(aggregateConfigDir / "NetLogoMT.wxs.mustache",
       msiBuildDir / "NetLogo.wxs", winVariables ++ componentConfig)
 
     Seq("NetLogoTranslation.wxl", "NetLogoUI.wxs", "ShortcutDialog.wxs").foreach { wixFile =>

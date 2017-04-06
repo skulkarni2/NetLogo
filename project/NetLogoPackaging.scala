@@ -286,12 +286,17 @@ object NetLogoPackaging {
         webTarget.value
       )
 
+      val buildVariables = Map[String, String](
+        "version"               -> "Alpha 0.0.1",
+        "numericOnlyVersion"    -> "0.0.1",
+        "date"                  -> buildDate.value)
+
       JavaFXWindowsBuild(
         target.value / s"win-demo-${buildJDK.arch}",
         commonConfig,
         outDir -> "dummy",
         Seq(NetLogoJavaFXApp),
-        buildVariables.value)
+        buildVariables)
     },
     iconFiles in packageMacAggregate := {
       ((configRoot.value ** "*.icns") +++
