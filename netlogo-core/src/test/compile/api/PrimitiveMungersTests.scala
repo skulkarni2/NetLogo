@@ -102,6 +102,26 @@ class PrimitiveMungersTests extends FunSuite with Inside {
     }
   }
 
+  test("matchArg fails when class is not reporter") {
+    val command = new DummyCommand()
+    val testReporter = repApp(new DummyCoreReporter(), new DummyReporter())
+    val m = newMatch(statement(new DummyCoreCommand(), command, testReporter))
+    type PrimClass = Class[_ <: Instruction]
+    intercept[MatchFailedException] {
+      // m.matchArg(0, classOf[DummyCoreCommand]) //error
+      m.matchArg(0, classOf[DummyCommand]) //good
+    }
+  }
+
+  test("matchArg passes when class is reporter") {
+    val command = new DummyCommand()
+    val testReporter = repApp(new DummyCoreReporter(), new DummyReporter())
+    val m = newMatch(statement(new DummyCoreCommand(), command, testReporter))
+    m.matchArg(0, classOf[DummyReporter])
+  }
+
+  // test for match arg with class provided
+
   test("match.reporter returns the ReporterApp reporter") {
     val reporter = new DummyReporter()
     val m = newMatch(repApp(new DummyCoreReporter(), reporter))
